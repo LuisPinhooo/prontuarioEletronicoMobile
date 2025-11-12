@@ -27,7 +27,7 @@ export default function Home({ navigation }) {
               iconName="document-text-outline"
               text="Resultados"
               color="#e74c3c"
-              onPress={() => navigation.navigate("LancamentoResultados")}
+              onPress={() => navigation.navigate("Resultados")}
             />
             <MenuItem
               iconName="clipboard-outline"

@@ -1,14 +1,15 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
+import { useState } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
 
 export default function Exames({ navigation }) {
-  const examesMock = [
+  const [exames, setExames] = useState([
     { id: 1, nome: "Hemograma Completo", descricao: "Análise completa do sangue" },
     { id: 2, nome: "Glicemia em Jejum", descricao: "Medição do nível de glicose" },
     { id: 3, nome: "Colesterol Total", descricao: "Dosagem de colesterol no sangue" },
-  ];
+  ]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -19,8 +20,19 @@ export default function Exames({ navigation }) {
   };
 
   const handleItemPress = (exame) => {
-    // Futuramente: navegar para detalhes do exame
-    console.log("Exame selecionado:", exame);
+    // Clique no card = Editar exame
+    navigation.navigate("CadastroExames", { 
+      exameId: exame.id, 
+      exameData: exame,
+      isEdit: true 
+    });
+  };
+
+  const handleDeleteExame = (exameId) => {
+    if (confirm("Deseja realmente excluir este exame?")) {
+      setExames(exames.filter(e => e.id !== exameId));
+      alert("Exame excluído com sucesso!");
+    }
   };
 
   const renderTitle = (item) => item.nome;
@@ -39,8 +51,9 @@ export default function Exames({ navigation }) {
         />
 
         <ItemList
-          data={examesMock}
+          data={exames}
           onItemPress={handleItemPress}
+          onDelete={handleDeleteExame}
           renderTitle={renderTitle}
           renderSubtitle={renderSubtitle}
         />

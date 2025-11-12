@@ -1,26 +1,33 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
+import { useState } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
 
 export default function Requisicoes({ navigation }) {
-  const requisicoesMock = [
-    { 
-      id: 1, 
-      nome: "João Silva - Colesterol Total", 
-      descricao: "Dr. Carlos Santos - 10/11/2025 - Pendente" 
-    },
-    { 
-      id: 2, 
-      nome: "Maria Oliveira - Uréia", 
-      descricao: "Dra. Ana Paula - 09/11/2025 - Em andamento" 
-    },
-    { 
-      id: 3, 
-      nome: "Pedro Santos - Glicose em Jejum", 
-      descricao: "Dr. Fernando Lima - 08/11/2025 - Pendente" 
-    },
-  ];
+    const [requisicoes, setRequisicoes] = useState([
+      { 
+        id: 1, 
+        numero: "1",
+        data: "10/11/2025",
+        status: "Pendente",
+        medico: "Dr. Carlos Santos"
+      },
+      { 
+        id: 2, 
+        numero: "2", 
+        data: "09/11/2025",
+        status: "Em andamento",
+        medico: "Dra. Ana Paula"
+      },
+      { 
+        id: 3, 
+        numero: "3",
+        data: "08/11/2025", 
+        status: "Pendente",
+        medico: "Dr. Fernando Lima"
+      },
+    ]);
 
   const handleBack = () => {
     navigation.goBack();
@@ -31,12 +38,23 @@ export default function Requisicoes({ navigation }) {
   };
 
   const handleItemPress = (requisicao) => {
-    // Futuramente: navegar para detalhes da requisição
-    console.log("Requisição selecionada:", requisicao);
+    // Clique no card = Editar requisição
+    navigation.navigate("CadastroRequisicoes", { 
+      requisicaoId: requisicao.id, 
+      requisicaoData: requisicao,
+      isEdit: true 
+    });
   };
 
-  const renderTitle = (item) => item.nome;
-  const renderSubtitle = (item) => item.descricao;
+  const handleDeleteRequisicao = (requisicaoId) => {
+    if (confirm("Deseja realmente excluir esta requisição?")) {
+      setRequisicoes(requisicoes.filter(r => r.id !== requisicaoId));
+      alert("Requisição excluída com sucesso!");
+    }
+  };
+
+  const renderTitle = (item) => `Requisição ${item.numero}`;
+  const renderSubtitle = (item) => `${item.data} - ${item.status} - ${item.medico}`;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -51,8 +69,9 @@ export default function Requisicoes({ navigation }) {
         />
 
         <ItemList
-          data={requisicoesMock}
+          data={requisicoes}
           onItemPress={handleItemPress}
+          onDelete={handleDeleteRequisicao}
           renderTitle={renderTitle}
           renderSubtitle={renderSubtitle}
         />
