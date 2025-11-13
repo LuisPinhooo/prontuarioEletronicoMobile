@@ -2,7 +2,6 @@ import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
 import { useState, useEffect } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
-import FormField from "../components/Common/FormField/index.js";
 import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
 import * as apiService from "../services/apiService.js";
@@ -10,40 +9,73 @@ import * as apiService from "../services/apiService.js";
 export default function CadastroRequisicoes({ navigation, route }) {
   const [formData, setFormData] = useState({
     pacienteId: "",
-    tipo: "",
-    descricao: "",
-    medico: "",
-    prioridade: "Normal",
+    exameIds: [],
   });
 
+  const [pacientes, setPacientes] = useState([]);
+  const [exames, setExames] = useState([]);
   const [isEdit, setIsEdit] = useState(false);
   const [requisicaoId, setRequisicaoId] = useState(null);
 
   useEffect(() => {
+    carregarPacientes();
+    carregarExames();
+
     if (route?.params?.isEdit && route?.params?.requisicaoData) {
       setIsEdit(true);
       setRequisicaoId(route.params.requisicaoData.id);
-      setFormData(route.params.requisicaoData);
+      setFormData({
+        pacienteId: route.params.requisicaoData.pacienteId.toString(),
+        exameIds: route.params.requisicaoData.exameIds,
+      });
     }
   }, [route?.params]);
+
+  const carregarPacientes = async () => {
+    try {
+      const result = await apiService.getPacientes();
+      if (!result.error) {
+        setPacientes(result.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pacientes:', error);
+    }
+  };
+
+  const carregarExames = async () => {
+    try {
+      const result = await apiService.getExames();
+      if (!result.error) {
+        setExames(result.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar exames:', error);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  const handleToggleExame = (exameId) => {
+    setFormData(prev => {
+      const exameIds = prev.exameIds.includes(exameId)
+        ? prev.exameIds.filter(id => id !== exameId)
+        : [...prev.exameIds, exameId];
+      return { ...prev, exameIds };
+    });
+  };
+
   const handleSalvar = async () => {
-    if (!formData.pacienteId || !formData.tipo) {
-      alert('Paciente e tipo são obrigatórios');
+    if (!formData.pacienteId || formData.exameIds.length === 0) {
+      alert('Selecione paciente e pelo menos um exame');
       return;
     }
 
     try {
       const requisicaoData = {
         ppacienteId: parseInt(formData.pacienteId),
-        ptipo: formData.tipo,
-        pdescricao: formData.descricao,
-        pmedico: formData.medico,
-        pprioridade: formData.prioridade
+        pexameIds: formData.exameIds.map(id => parseInt(id))
       };
 
       let result;
@@ -55,12 +87,13 @@ export default function CadastroRequisicoes({ navigation, route }) {
 
       if (!result.error) {
         alert(result.message);
+        setFormData({ pacienteId: "", exameIds: [] });
         navigation.goBack();
       } else {
         alert(`Erro: ${result.message}`);
       }
     } catch (error) {
-      console.error('Erro ao cadastrar requisição:', error);
+      console.error('Erro ao salvar requisição:', error);
       alert('Erro de conexão com a API');
     }
   };
@@ -68,6 +101,16 @@ export default function CadastroRequisicoes({ navigation, route }) {
   const handleCancelar = () => {
     navigation.goBack();
   };
+
+  const pacientesOptions = pacientes.map(p => ({
+    label: p.nome,
+    value: p.id.toString()
+  }));
+
+  const examesOptions = exames.map(e => ({
+    label: e.nome,
+    value: e.id.toString()
+  }));
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -82,48 +125,36 @@ export default function CadastroRequisicoes({ navigation, route }) {
         <View style={styles.form}>
           <Text style={styles.sectionTitle}>📋 Dados da Requisição</Text>
 
-          <FormField
-            label="ID do Paciente *"
-            placeholder="Digite o ID do paciente"
-            value={formData.pacienteId.toString()}
-            onChangeText={(value) => handleInputChange("pacienteId", value)}
-            keyboardType="numeric"
-          />
-
-          <FormField
-            label="Tipo de Exame *"
-            placeholder="Ex: Hemograma, Glicemia"
-            value={formData.tipo}
-            onChangeText={(value) => handleInputChange("tipo", value)}
-          />
-
-          <FormField
-            label="Descrição"
-            placeholder="Informações adicionais"
-            value={formData.descricao}
-            onChangeText={(value) => handleInputChange("descricao", value)}
-            multiline={true}
-            numberOfLines={4}
-          />
-
-          <FormField
-            label="Médico Responsável"
-            placeholder="Nome do médico"
-            value={formData.medico}
-            onChangeText={(value) => handleInputChange("medico", value)}
-          />
-
           <SelectField
-            label="Prioridade"
-            value={formData.prioridade}
-            onValueChange={(value) => handleInputChange("prioridade", value)}
-            options={[
-              { label: "Baixa", value: "Baixa" },
-              { label: "Normal", value: "Normal" },
-              { label: "Alta", value: "Alta" },
-              { label: "Urgente", value: "Urgente" },
-            ]}
+            label="Paciente *"
+            value={formData.pacienteId}
+            onValueChange={(value) => handleInputChange("pacienteId", value)}
+            placeholder="Selecione um paciente"
+            options={pacientesOptions}
           />
+
+          <Text style={styles.sectionTitle}>🔬 Exames</Text>
+          <Text style={styles.label}>Selecione os exames *</Text>
+          <View style={styles.examesContainer}>
+            {examesOptions.length === 0 ? (
+              <Text style={styles.noExamesText}>Nenhum exame disponível</Text>
+            ) : (
+              examesOptions.map(exame => (
+                <View key={exame.value} style={styles.exameItem}>
+                  <Text 
+                    style={[
+                      styles.exameText,
+                      formData.exameIds.includes(exame.value) && styles.exameTextSelected
+                    ]}
+                    onPress={() => handleToggleExame(exame.value)}
+                  >
+                    {formData.exameIds.includes(exame.value) ? '✓ ' : '○ '}
+                    {exame.label}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
 
           <ActionButtons
             onSave={handleSalvar}
@@ -150,5 +181,39 @@ const styles = StyleSheet.create({
     color: "#2ecc71",
     marginTop: 20,
     marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 10,
+  },
+  examesContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  exameItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  exameText: {
+    fontSize: 15,
+    color: "#666",
+    padding: 8,
+  },
+  exameTextSelected: {
+    color: "#2ecc71",
+    fontWeight: "600",
+  },
+  noExamesText: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    padding: 10,
   },
 });

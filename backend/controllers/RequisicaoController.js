@@ -55,22 +55,19 @@ exports.buscarPorPaciente = (req, res) => {
 
 exports.criar = (req, res) => {
     try {
-        const { ppacienteId, ptipo, pdescricao, pmedico, pprioridade } = req.body;
+        const { ppacienteId, pexameIds } = req.body;
         
-        if (!ppacienteId || !ptipo) {
+        if (!ppacienteId || !pexameIds || pexameIds.length === 0) {
             return res.status(400).json({
                 error: true, 
-                message: "Paciente ID e tipo são obrigatórios"
+                message: "Paciente ID e pelo menos um exame são obrigatórios"
             });
         }
 
         const novaRequisicao = {
             id: nextId++,
             pacienteId: ppacienteId,
-            tipo: ptipo,
-            descricao: pdescricao || '',
-            medico: pmedico || '',
-            prioridade: pprioridade || 'Normal',
+            exameIds: pexameIds,
             status: 'Pendente',
             dataCadastro: new Date().toISOString()
         };
@@ -93,12 +90,12 @@ exports.criar = (req, res) => {
 exports.atualizar = (req, res) => {
     try {
         const { id } = req.params;
-        const { ppacienteId, ptipo, pdescricao, pmedico, pprioridade, pstatus } = req.body;
+        const { ppacienteId, pexameIds } = req.body;
 
-        if (!ppacienteId || !ptipo || !id) {
+        if (!ppacienteId || !pexameIds || !id) {
             return res.status(400).json({
                 error: true, 
-                message: "Informe: id, pacienteId e tipo!"
+                message: "Informe: id, pacienteId e exameIds!"
             });
         }
 
@@ -114,11 +111,7 @@ exports.atualizar = (req, res) => {
         requisicoes[requisicaoIndex] = {
             ...requisicoes[requisicaoIndex],
             pacienteId: ppacienteId,
-            tipo: ptipo,
-            descricao: pdescricao || requisicoes[requisicaoIndex].descricao,
-            medico: pmedico || requisicoes[requisicaoIndex].medico,
-            prioridade: pprioridade || requisicoes[requisicaoIndex].prioridade,
-            status: pstatus || requisicoes[requisicaoIndex].status,
+            exameIds: pexameIds,
             dataAtualizacao: new Date().toISOString()
         };
 

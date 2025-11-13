@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3000';
 
 const fetchAPI = async (endpoint, method = 'GET', data = null) => {
   try {
@@ -48,7 +48,7 @@ export const deleteRequisicao = (id) => fetchAPI(`/deleterequisicao/${id}`, 'DEL
 // ============ RESULTADOS ============
 export const getResultados = () => fetchAPI('/getresultados');
 export const getResultado = (id) => fetchAPI(`/getresultados/${id}`);
-export const getResultadosExame = (exameId) => fetchAPI(`/getresultados/exame/${exameId}`);
+export const getResultadosRequisicao = (requisicaoId) => fetchAPI(`/getresultados/requisicao/${requisicaoId}`);
 export const createResultado = (data) => fetchAPI('/insertresultado', 'POST', data);
 export const updateResultado = (id, data) => fetchAPI(`/updateresultado/${id}`, 'PUT', data);
 export const deleteResultado = (id) => fetchAPI(`/deleteresultado/${id}`, 'DELETE');

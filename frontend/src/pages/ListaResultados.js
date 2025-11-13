@@ -1,34 +1,51 @@
-import { StyleSheet, View, SafeAreaView } from "react-native";
+import { StyleSheet, View, SafeAreaView, Text, TouchableOpacity, FlatList, TextInput } from "react-native";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
-import ItemList from "../components/Common/ItemList/index.js";
 import * as apiService from "../services/apiService.js";
 
 export default function ListaResultados({ navigation }) {
-  const [resultados, setResultados] = useState([]);
+  const [requisicoes, setRequisicoes] = useState([]);
+  const [requisicoesFiltradas, setRequisicoesFiltradas] = useState([]);
+  const [pacientes, setPacientes] = useState([]);
+  const [busca, setBusca] = useState("");
 
   useFocusEffect(
     useCallback(() => {
-      carregarResultados();
+      carregarDados();
     }, [])
   );
 
-  const carregarResultados = async () => {
+  const carregarDados = async () => {
     try {
-      console.log("Buscando resultados...");
-      const result = await apiService.getResultados();
-      console.log("Resposta:", result);
-
-      if (!result.error) {
-        setResultados(result.data);
-      } else {
-        alert(result.message);
+      const reqResult = await apiService.getRequisicoes();
+      const pacResult = await apiService.getPacientes();
+      
+      if (!reqResult.error) {
+        setRequisicoes(reqResult.data);
+        setRequisicoesFiltradas(reqResult.data);
+      }
+      if (!pacResult.error) {
+        setPacientes(pacResult.data);
       }
     } catch (error) {
-      console.error('Erro ao buscar resultados:', error);
+      console.error('Erro ao buscar dados:', error);
       alert('Falha ao conectar com a API');
+    }
+  };
+
+  const handleBusca = (texto) => {
+    setBusca(texto);
+    
+    if (texto.trim() === "") {
+      setRequisicoesFiltradas(requisicoes);
+    } else {
+      const filtradas = requisicoes.filter(r => 
+        r.id.toString().includes(texto) || 
+        r.pacienteId.toString().includes(texto)
+      );
+      setRequisicoesFiltradas(filtradas);
     }
   };
 
@@ -36,34 +53,32 @@ export default function ListaResultados({ navigation }) {
     navigation.goBack();
   };
 
-  const handleItemPress = (resultado) => {
+  const handleEditarResultados = (requisicao) => {
     navigation.navigate("LancamentoResultados", { 
-      resultadoId: resultado.id, 
-      resultadoData: resultado,
-      isEdit: true 
+      requisicaoId: requisicao.id  // ← Passar só o ID
     });
   };
 
-  const handleDeleteResultado = async (resultadoId) => {
-    if (confirm("Deseja realmente excluir este resultado?")) {
-      try {
-        const result = await apiService.deleteResultado(resultadoId);
-
-        if (!result.error) {
-          setResultados(resultados.filter(r => r.id !== resultadoId));
-          alert("Resultado excluído com sucesso!");
-        } else {
-          alert(result.message);
-        }
-      } catch (error) {
-        console.error('Erro ao deletar resultado:', error);
-        alert('Falha ao deletar resultado');
-      }
-    }
+  const getPacienteNome = (pacienteId) => {
+    const paciente = pacientes.find(p => p.id === pacienteId);
+    return paciente ? paciente.nome : 'Paciente desconhecido';
   };
 
-  const renderTitle = (item) => `Exame ID: ${item.exameId}`;
-  const renderSubtitle = (item) => `Status: ${item.status} | ${item.dataCadastro?.substring(0, 10)}`;
+  const renderRequisicao = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.requisicaoCard}
+      onPress={() => handleEditarResultados(item)}
+    >
+      <View style={styles.cardContent}>
+        <Text style={styles.requisicaoId}>Requisição #{item.id}</Text>
+        <Text style={styles.pacienteName}>👤 {getPacienteNome(item.pacienteId)}</Text>
+        <Text style={styles.examesCount}>🔬 {item.exameIds.length} exame(s)</Text>
+        <Text style={styles.status}>Status: {item.status}</Text>
+        <Text style={styles.data}>{new Date(item.dataCadastro).toLocaleDateString('pt-BR')}</Text>
+      </View>
+      <Text style={styles.editIcon}>✏️</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -71,17 +86,33 @@ export default function ListaResultados({ navigation }) {
         <Header />
         
         <PageHeader
-          title="Resultados"
+          title="Editar Resultados"
           onBack={handleBack}
         />
 
-        <ItemList
-          data={resultados}
-          onItemPress={handleItemPress}
-          onDelete={handleDeleteResultado}
-          renderTitle={renderTitle}
-          renderSubtitle={renderSubtitle}
-        />
+        <View style={styles.buscaContainer}>
+          <TextInput
+            style={styles.buscaInput}
+            placeholder="Buscar por ID da requisição..."
+            value={busca}
+            onChangeText={handleBusca}
+            keyboardType="numeric"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        <View style={styles.content}>
+          {requisicoesFiltradas.length === 0 ? (
+            <Text style={styles.emptyText}>Nenhuma requisição disponível</Text>
+          ) : (
+            <FlatList
+              data={requisicoesFiltradas}
+              renderItem={renderRequisicao}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -91,5 +122,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f0f2f5",
+  },
+  buscaContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+  },
+  buscaInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: "#f9f9f9",
+    color: "#333",
+  },
+  content: {
+    flex: 1,
+    padding: 15,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  requisicaoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  requisicaoId: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2ecc71",
+    marginBottom: 5,
+  },
+  pacienteName: {
+    fontSize: 15,
+    color: "#333",
+    marginBottom: 5,
+  },
+  examesCount: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 5,
+  },
+  status: {
+    fontSize: 13,
+    color: "#999",
+    marginBottom: 3,
+  },
+  data: {
+    fontSize: 12,
+    color: "#bbb",
+  },
+  editIcon: {
+    fontSize: 20,
+    marginLeft: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 50,
   },
 });

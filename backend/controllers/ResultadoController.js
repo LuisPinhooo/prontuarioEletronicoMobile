@@ -37,40 +37,39 @@ exports.buscarPorId = (req, res) => {
     }
 };
 
-exports.buscarPorExame = (req, res) => {
+exports.buscarPorRequisicao = (req, res) => {
     try {
-        const { exameId } = req.params;
-        const resExame = resultados.filter(r => r.exameId == exameId);
+        const { requisicaoId } = req.params;
+        const resRequisicao = resultados.filter(r => r.requisicaoId == requisicaoId);
         
         res.status(200).json({
             error: false, 
-            data: resExame,
-            total: resExame.length
+            data: resRequisicao,
+            total: resRequisicao.length
         });
     } catch (error) {
-        console.error("Erro ao buscar resultados do exame: ", error);
+        console.error("Erro ao buscar resultados da requisição: ", error);
         res.status(500).json({ error: true, message: "Erro interno do servidor" });
     }
 };
 
 exports.criar = (req, res) => {
     try {
-        const { pexameId, ppacienteId, pvalores, pobservacoes, pstatus } = req.body;
+        const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
         
-        if (!pexameId || !ppacienteId) {
+        if (!prequisicaoId || !pexameId || !presultado) {
             return res.status(400).json({
                 error: true, 
-                message: "Exame ID e Paciente ID são obrigatórios"
+                message: "Requisição ID, Exame ID e Resultado são obrigatórios"
             });
         }
 
         const novoResultado = {
             id: nextId++,
+            requisicaoId: prequisicaoId,
             exameId: pexameId,
-            pacienteId: ppacienteId,
-            valores: pvalores || '',
+            resultado: presultado,
             observacoes: pobservacoes || '',
-            status: pstatus || 'Processando',
             dataCadastro: new Date().toISOString()
         };
 
@@ -92,12 +91,12 @@ exports.criar = (req, res) => {
 exports.atualizar = (req, res) => {
     try {
         const { id } = req.params;
-        const { pexameId, ppacienteId, pvalores, pobservacoes, pstatus } = req.body;
+        const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
 
-        if (!pexameId || !ppacienteId || !id) {
+        if (!prequisicaoId || !pexameId || !presultado || !id) {
             return res.status(400).json({
                 error: true, 
-                message: "Informe: id, exameId e pacienteId!"
+                message: "Informe: id, requisicaoId, exameId e resultado!"
             });
         }
 
@@ -112,11 +111,10 @@ exports.atualizar = (req, res) => {
 
         resultados[resultadoIndex] = {
             ...resultados[resultadoIndex],
+            requisicaoId: prequisicaoId,
             exameId: pexameId,
-            pacienteId: ppacienteId,
-            valores: pvalores || resultados[resultadoIndex].valores,
+            resultado: presultado,
             observacoes: pobservacoes || resultados[resultadoIndex].observacoes,
-            status: pstatus || resultados[resultadoIndex].status,
             dataAtualizacao: new Date().toISOString()
         };
 
