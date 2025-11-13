@@ -4,6 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
+import * as apiService from "../services/apiService.js";
 
 export default function Exames({ navigation }) {
   const [exames, setExames] = useState([]);
@@ -17,8 +18,7 @@ export default function Exames({ navigation }) {
   const carregarExames = async () => {
     try {
       console.log("Buscando exames...");
-      const response = await fetch('http://localhost:3000/getexames');
-      const result = await response.json();
+      const result = await apiService.getExames();
       console.log("Resposta:", result);
 
       if (!result.error) {
@@ -50,10 +50,7 @@ export default function Exames({ navigation }) {
   const handleDeleteExame = async (exameId) => {
     if (confirm("Deseja realmente excluir este exame?")) {
       try {
-        const response = await fetch(`http://localhost:3000/deleteexame/${exameId}`, {
-          method: 'DELETE'
-        });
-        const result = await response.json();
+        const result = await apiService.deleteExame(exameId);
 
         if (!result.error) {
           setExames(exames.filter(e => e.id !== exameId));

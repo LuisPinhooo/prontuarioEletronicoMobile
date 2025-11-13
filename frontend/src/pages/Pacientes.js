@@ -1,9 +1,10 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
+import * as apiService from "../services/apiService.js";
 
 export default function Pacientes({ navigation }) {
   const [pacientes, setPacientes] = useState([]);
@@ -17,8 +18,7 @@ export default function Pacientes({ navigation }) {
   const carregarPacientes = async () => {
     try {
       console.log("Buscando pacientes...");
-      const response = await fetch('http://localhost:3000/getpacientes');
-      const result = await response.json();
+      const result = await apiService.getPacientes();
       console.log("Resposta:", result);
 
       if (!result.error) {
@@ -51,10 +51,7 @@ export default function Pacientes({ navigation }) {
   const handleDeletePaciente = async (pacienteId) => {
     if (confirm("Deseja realmente excluir este paciente?")) {
       try {
-        const response = await fetch(`http://localhost:3000/deletepaciente/${pacienteId}`, {
-          method: 'DELETE'
-        });
-        const result = await response.json();
+        const result = await apiService.deletePaciente(pacienteId);
 
         if (!result.error) {
           setPacientes(pacientes.filter(p => p.id !== pacienteId));

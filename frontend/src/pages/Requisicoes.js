@@ -1,33 +1,36 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
+import * as apiService from "../services/apiService.js";
 
 export default function Requisicoes({ navigation }) {
-    const [requisicoes, setRequisicoes] = useState([
-      { 
-        id: 1, 
-        numero: "1",
-        data: "10/11/2025",
-        status: "Pendente",
-        medico: "Dr. Carlos Santos"
-      },
-      { 
-        id: 2, 
-        numero: "2", 
-        data: "09/11/2025",
-        status: "Em andamento",
-        medico: "Dra. Ana Paula"
-      },
-      { 
-        id: 3, 
-        numero: "3",
-        data: "08/11/2025", 
-        status: "Pendente",
-        medico: "Dr. Fernando Lima"
-      },
-    ]);
+  const [requisicoes, setRequisicoes] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarRequisicoes();
+    }, [])
+  );
+
+  const carregarRequisicoes = async () => {
+    try {
+      console.log("Buscando requisições...");
+      const result = await apiService.getRequisicoes();
+      console.log("Resposta:", result);
+
+      if (!result.error) {
+        setRequisicoes(result.data);
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar requisições:', error);
+      alert('Falha ao conectar com a API');
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -38,23 +41,32 @@ export default function Requisicoes({ navigation }) {
   };
 
   const handleItemPress = (requisicao) => {
-    // Clique no card = Editar requisição
     navigation.navigate("CadastroRequisicoes", { 
-      requisicaoId: requisicao.id, 
-      requisicaoData: requisicao,
-      isEdit: true 
+      isEdit: true,
+      requisicaoData: requisicao
     });
   };
 
-  const handleDeleteRequisicao = (requisicaoId) => {
+  const handleDeleteRequisicao = async (requisicaoId) => {
     if (confirm("Deseja realmente excluir esta requisição?")) {
-      setRequisicoes(requisicoes.filter(r => r.id !== requisicaoId));
-      alert("Requisição excluída com sucesso!");
+      try {
+        const result = await apiService.deleteRequisicao(requisicaoId);
+
+        if (!result.error) {
+          setRequisicoes(requisicoes.filter(r => r.id !== requisicaoId));
+          alert("Requisição excluída com sucesso!");
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Erro ao deletar requisição:', error);
+        alert('Falha ao deletar requisição');
+      }
     }
   };
 
-  const renderTitle = (item) => `Requisição ${item.numero}`;
-  const renderSubtitle = (item) => `${item.data} - ${item.status} - ${item.medico}`;
+  const renderTitle = (item) => item.tipo;
+  const renderSubtitle = (item) => `Status: ${item.status} | Prioridade: ${item.prioridade}`;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

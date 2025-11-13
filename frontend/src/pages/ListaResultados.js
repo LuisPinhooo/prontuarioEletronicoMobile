@@ -1,33 +1,36 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
+import * as apiService from "../services/apiService.js";
 
 export default function ListaResultados({ navigation }) {
-  const [resultados, setResultados] = useState([
-    { 
-      id: 1, 
-      requisicao: "Requisição 1",
-      dataLancamento: "11/11/2025",
-      status: "Liberado",
-      laboratorio: "Lab. Central"
-    },
-    { 
-      id: 2, 
-      requisicao: "Requisição 2", 
-      dataLancamento: "10/11/2025",
-      status: "Liberado",
-      laboratorio: "Imagem Center"
-    },
-    { 
-      id: 3, 
-      requisicao: "Requisição 3",
-      dataLancamento: "09/11/2025", 
-      status: "Em análise",
-      laboratorio: "Lab. Unidos"
-    },
-  ]);
+  const [resultados, setResultados] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarResultados();
+    }, [])
+  );
+
+  const carregarResultados = async () => {
+    try {
+      console.log("Buscando resultados...");
+      const result = await apiService.getResultados();
+      console.log("Resposta:", result);
+
+      if (!result.error) {
+        setResultados(result.data);
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar resultados:', error);
+      alert('Falha ao conectar com a API');
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -41,15 +44,26 @@ export default function ListaResultados({ navigation }) {
     });
   };
 
-  const handleDeleteResultado = (resultadoId) => {
+  const handleDeleteResultado = async (resultadoId) => {
     if (confirm("Deseja realmente excluir este resultado?")) {
-      setResultados(resultados.filter(r => r.id !== resultadoId));
-      alert("Resultado excluído com sucesso!");
+      try {
+        const result = await apiService.deleteResultado(resultadoId);
+
+        if (!result.error) {
+          setResultados(resultados.filter(r => r.id !== resultadoId));
+          alert("Resultado excluído com sucesso!");
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Erro ao deletar resultado:', error);
+        alert('Falha ao deletar resultado');
+      }
     }
   };
 
-  const renderTitle = (item) => item.requisicao;
-  const renderSubtitle = (item) => `${item.dataLancamento} - ${item.status} - ${item.laboratorio}`;
+  const renderTitle = (item) => `Exame ID: ${item.exameId}`;
+  const renderSubtitle = (item) => `Status: ${item.status} | ${item.dataCadastro?.substring(0, 10)}`;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -57,7 +71,7 @@ export default function ListaResultados({ navigation }) {
         <Header />
         
         <PageHeader
-          title="Editar Resultados"
+          title="Resultados"
           onBack={handleBack}
         />
 

@@ -1,26 +1,68 @@
-import { StyleSheet, View, SafeAreaView, ScrollView } from "react-native";
-import { useState } from "react";
+import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
+import { useState, useEffect } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import FormField from "../components/Common/FormField/index.js";
+import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+import * as apiService from "../services/apiService.js";
 
-export default function CadastroRequisicoes({ navigation }) {
+export default function CadastroRequisicoes({ navigation, route }) {
   const [formData, setFormData] = useState({
-    paciente: "",
-    exame: "",
-    medicoSolicitante: "",
-    observacoes: "",
+    pacienteId: "",
+    tipo: "",
+    descricao: "",
+    medico: "",
+    prioridade: "Normal",
   });
+
+  const [isEdit, setIsEdit] = useState(false);
+  const [requisicaoId, setRequisicaoId] = useState(null);
+
+  useEffect(() => {
+    if (route?.params?.isEdit && route?.params?.requisicaoData) {
+      setIsEdit(true);
+      setRequisicaoId(route.params.requisicaoData.id);
+      setFormData(route.params.requisicaoData);
+    }
+  }, [route?.params]);
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSalvar = () => {
-    console.log("Dados da requisição:", formData);
-    alert("Requisição cadastrada com sucesso! (Visual apenas)");
-    navigation.goBack();
+  const handleSalvar = async () => {
+    if (!formData.pacienteId || !formData.tipo) {
+      alert('Paciente e tipo são obrigatórios');
+      return;
+    }
+
+    try {
+      const requisicaoData = {
+        ppacienteId: parseInt(formData.pacienteId),
+        ptipo: formData.tipo,
+        pdescricao: formData.descricao,
+        pmedico: formData.medico,
+        pprioridade: formData.prioridade
+      };
+
+      let result;
+      if (isEdit) {
+        result = await apiService.updateRequisicao(requisicaoId, requisicaoData);
+      } else {
+        result = await apiService.createRequisicao(requisicaoData);
+      }
+
+      if (!result.error) {
+        alert(result.message);
+        navigation.goBack();
+      } else {
+        alert(`Erro: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro ao cadastrar requisição:', error);
+      alert('Erro de conexão com a API');
+    }
   };
 
   const handleCancelar = () => {
@@ -33,45 +75,60 @@ export default function CadastroRequisicoes({ navigation }) {
         <Header />
         
         <PageHeader
-          title="Nova Requisição"
+          title={isEdit ? "Editar Requisição" : "Nova Requisição"}
           onBack={handleCancelar}
         />
 
         <View style={styles.form}>
+          <Text style={styles.sectionTitle}>📋 Dados da Requisição</Text>
+
           <FormField
-            label="Nome do Paciente *"
-            placeholder="Digite o nome do paciente"
-            value={formData.paciente}
-            onChangeText={(value) => handleInputChange("paciente", value)}
+            label="ID do Paciente *"
+            placeholder="Digite o ID do paciente"
+            value={formData.pacienteId.toString()}
+            onChangeText={(value) => handleInputChange("pacienteId", value)}
+            keyboardType="numeric"
           />
 
           <FormField
-            label="Exame Solicitado *"
-            placeholder="Digite o nome do exame"
-            value={formData.exame}
-            onChangeText={(value) => handleInputChange("exame", value)}
+            label="Tipo de Exame *"
+            placeholder="Ex: Hemograma, Glicemia"
+            value={formData.tipo}
+            onChangeText={(value) => handleInputChange("tipo", value)}
           />
 
           <FormField
-            label="Médico Solicitante *"
-            placeholder="Digite o nome do médico"
-            value={formData.medicoSolicitante}
-            onChangeText={(value) => handleInputChange("medicoSolicitante", value)}
-          />
-
-          <FormField
-            label="Observações"
-            placeholder="Informações adicionais sobre a requisição"
-            value={formData.observacoes}
-            onChangeText={(value) => handleInputChange("observacoes", value)}
+            label="Descrição"
+            placeholder="Informações adicionais"
+            value={formData.descricao}
+            onChangeText={(value) => handleInputChange("descricao", value)}
             multiline={true}
             numberOfLines={4}
+          />
+
+          <FormField
+            label="Médico Responsável"
+            placeholder="Nome do médico"
+            value={formData.medico}
+            onChangeText={(value) => handleInputChange("medico", value)}
+          />
+
+          <SelectField
+            label="Prioridade"
+            value={formData.prioridade}
+            onValueChange={(value) => handleInputChange("prioridade", value)}
+            options={[
+              { label: "Baixa", value: "Baixa" },
+              { label: "Normal", value: "Normal" },
+              { label: "Alta", value: "Alta" },
+              { label: "Urgente", value: "Urgente" },
+            ]}
           />
 
           <ActionButtons
             onSave={handleSalvar}
             onCancel={handleCancelar}
-            saveText="Salvar Requisição"
+            saveText={isEdit ? "Atualizar Requisição" : "Salvar Requisição"}
           />
         </View>
       </ScrollView>
@@ -86,5 +143,12 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2ecc71",
+    marginTop: 20,
+    marginBottom: 15,
   },
 });

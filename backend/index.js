@@ -1,46 +1,70 @@
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const bodyParser = require('body-parser');
+const cors = require('cors');
+const morgan = require('morgan');
 
+// Importar controllers
+const PacienteController = require('./controllers/PacienteController');
+const ExameController = require('./controllers/ExameController');
+const RequisicaoController = require('./controllers/RequisicaoController');
+const ResultadoController = require('./controllers/ResultadoController');
+
+// Importar rotas
 const pacientesRoutes = require('./routes/pacientes');
 const examesRoutes = require('./routes/exames');
+const requisicoesRoutes = require('./routes/requisicoes');
+const resultadosRoutes = require('./routes/resultados');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
-// Rota de teste
-app.get("/", (req, res) => {
-    res.json({ 
-        status: "Ok", 
-        message: "API Prontuário Eletrônico funcionando!",
-        version: "1.0.0"
-    });
+// Mock data (dados locais)
+let users = [
+  { id: 1, name: 'Admin', email: 'admin@local', password: '123456' },
+  { id: 2, name: 'João Silva', email: 'joao@local', password: '123456' }
+];
+
+// Health check
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Auth routes
+app.post('/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) {
+    return res.status(400).json({ error: true, message: 'Credenciais inválidas' });
+  }
+  const token = 'mock_token_' + Math.random().toString(36).substr(2, 9);
+  res.json({ error: false, token, user: { id: user.id, name: user.name, email: user.email } });
+});
+
+app.post('/auth/register', (req, res) => {
+  const { name, email, password } = req.body;
+  if (users.find(u => u.email === email)) {
+    return res.status(400).json({ error: true, message: 'Usuário já existe' });
+  }
+  const newUser = { id: users.length + 1, name, email, password };
+  users.push(newUser);
+  res.status(201).json({ error: false, message: 'Usuário criado com sucesso', user: { id: newUser.id, name: newUser.name, email: newUser.email } });
 });
 
 // Rotas de Pacientes
-app.use(pacientesRoutes);
+app.use('/', pacientesRoutes);
 
 // Rotas de Exames
-app.use(examesRoutes);
+app.use('/', examesRoutes);
 
-// Middleware de tratamento de erros
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: true, message: "Algo deu errado!" });
-});
+// Rotas de Requisições
+app.use('/', requisicoesRoutes);
 
-// Middleware para rotas não encontradas
-app.use('*', (req, res) => {
-    res.status(404).json({ error: true, message: "Rota não encontrada" });
-});
+// Rotas de Resultados
+app.use('/', resultadosRoutes);
 
-// Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📱 API disponível em: http://localhost:${PORT}`);
-});
+// 404
+app.use((req, res) => res.status(404).json({ error: true, message: 'Rota não encontrada' }));
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`✅ API rodando na porta ${PORT}`));

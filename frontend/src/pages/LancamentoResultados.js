@@ -1,32 +1,67 @@
 import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import FormField from "../components/Common/FormField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+import * as apiService from "../services/apiService.js";
 
-export default function LancamentoResultados({ navigation }) {
+export default function LancamentoResultados({ navigation, route }) {
   const [formData, setFormData] = useState({
-    requisicao: "",
-    resultado: "",
+    exameId: "",
+    pacienteId: "",
+    valores: "",
     observacoes: "",
+    status: "Processando",
   });
 
-  // Requisições mockadas para seleção
-  const requisicoesDisponiveis = [
-    "João Silva - Hemograma Completo",
-    "Maria Oliveira - Raio-X Tórax",
-    "Pedro Santos - Ultrassom Abdominal",
-  ];
+  const [isEdit, setIsEdit] = useState(false);
+  const [resultadoId, setResultadoId] = useState(null);
+
+  useEffect(() => {
+    if (route?.params?.isEdit && route?.params?.resultadoData) {
+      setIsEdit(true);
+      setResultadoId(route.params.resultadoData.id);
+      setFormData(route.params.resultadoData);
+    }
+  }, [route?.params]);
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSalvar = () => {
-    console.log("Resultado lançado:", formData);
-    alert("Resultado lançado com sucesso! (Visual apenas)");
-    navigation.goBack();
+  const handleSalvar = async () => {
+    if (!formData.exameId || !formData.pacienteId) {
+      alert('Exame ID e Paciente ID são obrigatórios');
+      return;
+    }
+
+    try {
+      const resultadoData = {
+        pexameId: parseInt(formData.exameId),
+        ppacienteId: parseInt(formData.pacienteId),
+        pvalores: formData.valores,
+        pobservacoes: formData.observacoes,
+        pstatus: formData.status
+      };
+
+      let result;
+      if (isEdit) {
+        result = await apiService.updateResultado(resultadoId, resultadoData);
+      } else {
+        result = await apiService.createResultado(resultadoData);
+      }
+
+      if (!result.error) {
+        alert(result.message);
+        navigation.goBack();
+      } else {
+        alert(`Erro: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro ao lançar resultado:', error);
+      alert('Erro de conexão com a API');
+    }
   };
 
   const handleCancelar = () => {
@@ -39,47 +74,58 @@ export default function LancamentoResultados({ navigation }) {
         <Header />
         
         <PageHeader
-          title="Lançar Resultado"
+          title={isEdit ? "Editar Resultado" : "Lançar Resultado"}
           onBack={handleCancelar}
         />
 
         <View style={styles.form}>
+          <Text style={styles.sectionTitle}>📋 Dados do Resultado</Text>
+
           <FormField
-            label="Requisição *"
-            placeholder="Digite o nome do paciente e exame"
-            value={formData.requisicao}
-            onChangeText={(value) => handleInputChange("requisicao", value)}
+            label="ID do Exame *"
+            placeholder="Digite o ID do exame"
+            value={formData.exameId.toString()}
+            onChangeText={(value) => handleInputChange("exameId", value)}
+            keyboardType="numeric"
           />
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>💡 Dica</Text>
-            <Text style={styles.infoText}>
-              Digite o nome do paciente para buscar as requisições disponíveis
-            </Text>
-          </View>
+          <FormField
+            label="ID do Paciente *"
+            placeholder="Digite o ID do paciente"
+            value={formData.pacienteId.toString()}
+            onChangeText={(value) => handleInputChange("pacienteId", value)}
+            keyboardType="numeric"
+          />
 
           <FormField
-            label="Resultado do Exame *"
-            placeholder="Digite o resultado do exame..."
-            value={formData.resultado}
-            onChangeText={(value) => handleInputChange("resultado", value)}
+            label="Valores/Resultado *"
+            placeholder="Digite os valores do resultado..."
+            value={formData.valores}
+            onChangeText={(value) => handleInputChange("valores", value)}
             multiline={true}
-            numberOfLines={8}
+            numberOfLines={6}
           />
 
           <FormField
             label="Observações"
-            placeholder="Informações adicionais sobre o resultado"
+            placeholder="Informações adicionais"
             value={formData.observacoes}
             onChangeText={(value) => handleInputChange("observacoes", value)}
             multiline={true}
             numberOfLines={4}
           />
 
+          <FormField
+            label="Status"
+            placeholder="Status do resultado"
+            value={formData.status}
+            onChangeText={(value) => handleInputChange("status", value)}
+          />
+
           <ActionButtons
             onSave={handleSalvar}
             onCancel={handleCancelar}
-            saveText="Lançar Resultado"
+            saveText={isEdit ? "Atualizar Resultado" : "Lançar Resultado"}
           />
         </View>
       </ScrollView>
@@ -95,22 +141,11 @@ const styles = StyleSheet.create({
   form: {
     padding: 20,
   },
-  infoBox: {
-    backgroundColor: "#e3f2fd",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: "#2196f3",
-  },
-  infoTitle: {
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#1976d2",
-    marginBottom: 5,
-  },
-  infoText: {
-    fontSize: 13,
-    color: "#1565c0",
+    color: "#2ecc71",
+    marginTop: 20,
+    marginBottom: 15,
   },
 });
