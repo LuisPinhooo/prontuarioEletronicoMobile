@@ -1,15 +1,36 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
 
 export default function Pacientes({ navigation }) {
-  const [pacientes, setPacientes] = useState([
-    { id: 1, nome: "João Silva", cpf: "123.456.789-00" },
-    { id: 2, nome: "Maria Santos", cpf: "987.654.321-00" },
-    { id: 3, nome: "Pedro Oliveira", cpf: "456.789.123-00" },
-  ]);
+  const [pacientes, setPacientes] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarPacientes();
+    }, [])
+  );
+
+  const carregarPacientes = async () => {
+    try {
+      console.log("Buscando pacientes...");
+      const response = await fetch('http://localhost:3000/getpacientes');
+      const result = await response.json();
+      console.log("Resposta:", result);
+
+      if (!result.error) {
+        setPacientes(result.data);
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar pacientes:', error);
+      alert('Falha ao conectar com a API');
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -20,7 +41,6 @@ export default function Pacientes({ navigation }) {
   };
 
   const handleItemPress = (paciente) => {
-    // Clique no card = Editar paciente
     navigation.navigate("CadastroPacientes", { 
       pacienteId: paciente.id, 
       pacienteData: paciente,
@@ -28,10 +48,24 @@ export default function Pacientes({ navigation }) {
     });
   };
 
-  const handleDeletePaciente = (pacienteId) => {
+  const handleDeletePaciente = async (pacienteId) => {
     if (confirm("Deseja realmente excluir este paciente?")) {
-      setPacientes(pacientes.filter(p => p.id !== pacienteId));
-      alert("Paciente excluído com sucesso!");
+      try {
+        const response = await fetch(`http://localhost:3000/deletepaciente/${pacienteId}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+
+        if (!result.error) {
+          setPacientes(pacientes.filter(p => p.id !== pacienteId));
+          alert("Paciente excluído com sucesso!");
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Erro ao deletar paciente:', error);
+        alert('Falha ao deletar paciente');
+      }
     }
   };
 

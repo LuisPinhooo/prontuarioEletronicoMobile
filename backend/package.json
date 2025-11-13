@@ -1,12 +1,29 @@
 {
-  "name": "backend",
+  "name": "prontuario-backend",
   "version": "1.0.0",
+  "description": "Backend para prontuário eletrônico mobile",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "prontuario",
+    "saude",
+    "mobile",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
 }

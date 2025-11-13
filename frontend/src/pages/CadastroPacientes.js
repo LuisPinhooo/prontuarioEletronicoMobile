@@ -1,12 +1,13 @@
 import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import FormField from "../components/Common/FormField/index.js";
-import SelectField from "../components/Common/SelectField/index.js";  // ← NOVO
+import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+import * as apiService from "../services/apiService.js";
 
-export default function CadastroPacientes({ navigation }) {
+export default function CadastroPacientes({ navigation, route }) {
   const [formData, setFormData] = useState({
     nome: "",
     dataNascimento: "",
@@ -21,14 +22,73 @@ export default function CadastroPacientes({ navigation }) {
     habitosVida: "",
   });
 
+  const [isEdit, setIsEdit] = useState(false);
+  const [pacienteId, setPacienteId] = useState(null);
+
+  useEffect(() => {
+    if (route?.params?.isEdit && route?.params?.pacienteData) {
+      setIsEdit(true);
+      setPacienteId(route.params.pacienteData.id);
+      setFormData(route.params.pacienteData);
+    }
+  }, [route?.params]);
+
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSalvar = () => {
-    console.log("Dados do formulário:", formData);
-    alert("Paciente cadastrado com sucesso! (Visual apenas)");
-    navigation.goBack();
+  const handleSalvar = async () => {
+    // Validação MÍNIMA - apenas campos obrigatórios não vazios
+    if (!formData.nome.trim() || !formData.cpf.trim()) {
+      alert('Nome e CPF são obrigatórios');
+      return;
+    }
+
+    try {
+      const pacienteData = {
+        pnome: formData.nome,
+        pcpf: formData.cpf,
+        ptelefone: formData.telefone,
+        pemail: formData.email,
+        pendereco: formData.endereco,
+        pdataNascimento: formData.dataNascimento,
+        psexo: formData.sexo,
+        ppeso: formData.peso,
+        paltura: formData.altura,
+        phistoricoFamiliar: formData.historicoFamiliar,
+        phabitosVida: formData.habitosVida
+      };
+
+      let result;
+      if (isEdit) {
+        result = await apiService.updatePaciente(pacienteId, pacienteData);
+      } else {
+        result = await apiService.createPaciente(pacienteData);
+      }
+
+      if (!result.error) {
+        alert(result.message);
+        setFormData({
+          nome: "",
+          dataNascimento: "",
+          cpf: "",
+          sexo: "",
+          telefone: "",
+          email: "",
+          endereco: "",
+          peso: "",
+          altura: "",
+          historicoFamiliar: "",
+          habitosVida: "",
+        });
+        navigation.goBack();
+      } else {
+        alert(`Erro: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro ao cadastrar paciente:', error);
+      alert('Erro de conexão. Verifique se a API está rodando na porta 3000.');
+    }
   };
 
   const handleCancelar = () => {
@@ -41,7 +101,7 @@ export default function CadastroPacientes({ navigation }) {
         <Header />
         
         <PageHeader
-          title="Novo Paciente"
+          title={isEdit ? "Editar Paciente" : "Novo Paciente"}
           onBack={handleCancelar}
         />
 
@@ -71,11 +131,15 @@ export default function CadastroPacientes({ navigation }) {
             keyboardType="numeric"
           />
 
-          <FormField
+          <SelectField
             label="Sexo *"
-            placeholder="Masculino / Feminino"
             value={formData.sexo}
-            onChangeText={(value) => handleInputChange("sexo", value)}
+            onValueChange={(value) => handleInputChange("sexo", value)}
+            placeholder="Selecione uma opção"
+            options={[
+              { label: "Masculino", value: "Masculino" },
+              { label: "Feminino", value: "Feminino" },
+            ]}
           />
 
           <Text style={styles.sectionTitle}>📞 Contato</Text>
@@ -151,7 +215,7 @@ export default function CadastroPacientes({ navigation }) {
           <ActionButtons
             onSave={handleSalvar}
             onCancel={handleCancelar}
-            saveText="Salvar Paciente"
+            saveText={isEdit ? "Atualizar Paciente" : "Salvar Paciente"}
           />
         </View>
       </ScrollView>

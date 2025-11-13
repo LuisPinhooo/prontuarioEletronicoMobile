@@ -1,15 +1,36 @@
 import { StyleSheet, View, SafeAreaView } from "react-native";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import ItemList from "../components/Common/ItemList/index.js";
 
 export default function Exames({ navigation }) {
-  const [exames, setExames] = useState([
-    { id: 1, nome: "Hemograma Completo", descricao: "Análise completa do sangue" },
-    { id: 2, nome: "Glicemia em Jejum", descricao: "Medição do nível de glicose" },
-    { id: 3, nome: "Colesterol Total", descricao: "Dosagem de colesterol no sangue" },
-  ]);
+  const [exames, setExames] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarExames();
+    }, [])
+  );
+
+  const carregarExames = async () => {
+    try {
+      console.log("Buscando exames...");
+      const response = await fetch('http://localhost:3000/getexames');
+      const result = await response.json();
+      console.log("Resposta:", result);
+
+      if (!result.error) {
+        setExames(result.data);
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar exames:', error);
+      alert('Falha ao conectar com a API');
+    }
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -20,23 +41,35 @@ export default function Exames({ navigation }) {
   };
 
   const handleItemPress = (exame) => {
-    // Clique no card = Editar exame
     navigation.navigate("CadastroExames", { 
-      exameId: exame.id, 
-      exameData: exame,
-      isEdit: true 
+      isEdit: true,
+      exameData: exame
     });
   };
 
-  const handleDeleteExame = (exameId) => {
+  const handleDeleteExame = async (exameId) => {
     if (confirm("Deseja realmente excluir este exame?")) {
-      setExames(exames.filter(e => e.id !== exameId));
-      alert("Exame excluído com sucesso!");
+      try {
+        const response = await fetch(`http://localhost:3000/deleteexame/${exameId}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+
+        if (!result.error) {
+          setExames(exames.filter(e => e.id !== exameId));
+          alert("Exame excluído com sucesso!");
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Erro ao deletar exame:', error);
+        alert('Falha ao deletar exame');
+      }
     }
   };
 
   const renderTitle = (item) => item.nome;
-  const renderSubtitle = (item) => item.descricao;
+  const renderSubtitle = (item) => item.descricao || "Sem descrição";
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
