@@ -2,7 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import Login from "./src/pages/Login"; // ← ADICIONAR
+import Login from "./src/pages/Login";
 import Home from "./src/pages/Home";
 import Pacientes from "./src/pages/Pacientes";
 import CadastroPacientes from "./src/pages/CadastroPacientes";
@@ -25,9 +25,7 @@ export default function App() {
           headerShown: false,
         }}
       >
-        {/* Login */}
         <Stack.Screen name="Login" component={Login} />
-
         <Stack.Screen name="Home" component={Home} />
 
         {/* Pacientes */}
@@ -40,13 +38,13 @@ export default function App() {
 
         {/* Requisições */}
         <Stack.Screen name="Requisicoes" component={Requisicoes} />
-        <Stack.Screen name="CadastroRequisicoes"component={CadastroRequisicoes}/>
+        <Stack.Screen name="CadastroRequisicoes" component={CadastroRequisicoes} />
         
         <Stack.Screen name="Resultados" component={Resultados} />
         
         <Stack.Screen name="ListaResultados" component={ListaResultados} />
 
-        <Stack.Screen name="LancamentoResultados" component={LancamentoResultados}/>
+        <Stack.Screen name="LancamentoResultados" component={LancamentoResultados} />
 
       </Stack.Navigator>
     </NavigationContainer>

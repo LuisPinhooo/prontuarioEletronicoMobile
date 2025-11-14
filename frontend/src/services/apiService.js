@@ -1,21 +1,44 @@
-const API_URL = 'http://localhost:3000';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://localhost:3000'; // ← Porta 3000 (mesma do backend)
 
 const fetchAPI = async (endpoint, method = 'GET', data = null) => {
   try {
     const options = {
       method,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json' 
+      }
     };
     
+    // Adicionar o Token no Cabeçalho (se não for rota de auth)
+    if (!endpoint.startsWith('/auth')) {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        console.warn("Nenhum token encontrado para rota protegida:", endpoint);
+      }
+    }
+
     if (data) {
       options.body = JSON.stringify(data);
     }
     
+    console.log(`[API Call] ${method} ${API_URL}${endpoint}`);
     const response = await fetch(`${API_URL}${endpoint}`, options);
+    
+    // Tratar resposta 401 (Token Expirado/Inválido)
+    if (response.status === 401) {
+      console.error("Erro 401: Token inválido ou expirado.");
+      return { error: true, message: "Sessão expirada. Faça login novamente." };
+    }
+
     return await response.json();
+
   } catch (error) {
     console.error(`Erro em ${endpoint}:`, error);
-    throw error;
+    return { error: true, message: "Falha de conexão com a API." };
   }
 };
 

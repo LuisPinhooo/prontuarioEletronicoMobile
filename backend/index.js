@@ -4,6 +4,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 // Importar rotas
+const authRoutes = require('./routes/auth');
+const authMiddleware = require('./middlewares/auth');
 const pacientesRoutes = require('./routes/pacientes');
 const examesRoutes = require('./routes/exames');
 const requisicoeRoutes = require('./routes/requisicoes');
@@ -26,17 +28,14 @@ app.get("/", (req, res) => {
     });
 });
 
-// Rotas de Pacientes
-app.use(pacientesRoutes);
+// Rotas de Autenticação (NÃO PROTEGIDAS - não precisa de token)
+app.use('/auth', authRoutes);
 
-// Rotas de Exames
-app.use(examesRoutes);
-
-// Rotas de Requisições
-app.use(requisicoeRoutes);
-
-// Rotas de Resultados
-app.use(resultadosRoutes);
+// Rotas Protegidas (PRECISAM DE TOKEN)
+app.use(authMiddleware, pacientesRoutes);
+app.use(authMiddleware, examesRoutes);
+app.use(authMiddleware, requisicoeRoutes);
+app.use(authMiddleware, resultadosRoutes);
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
@@ -53,4 +52,6 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📱 API disponível em: http://localhost:${PORT}`);
+    console.log(`🔐 Rotas de Autenticação: http://localhost:${PORT}/auth`);
+    console.log(`📋 Usuário Master: admin@local / 123456`);
 });

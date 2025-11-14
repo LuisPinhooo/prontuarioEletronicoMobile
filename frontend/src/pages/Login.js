@@ -3,10 +3,11 @@ import { useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from "../components/Header/index.js";
 import FormField from "../components/Common/FormField/index.js";
+import * as apiService from "../services/apiService.js"; // 1. Importar o apiService
 
 export default function Login({ navigation }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@local"); // Valor padrão para facilitar o teste
+  const [password, setPassword] = useState("123456"); // Valor padrão para facilitar o teste
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -14,28 +15,30 @@ export default function Login({ navigation }) {
       Alert.alert("Erro", "Email e senha são obrigatórios");
       return;
     }
+    
     try {
       setLoading(true);
-      // Mock login - sem conexão com backend por enquanto
-      const mockUsers = [
-        { id: 1, name: 'Admin', email: 'admin@local', password: '123456' },
-        { id: 2, name: 'João Silva', email: 'joao@local', password: '123456' }
-      ];
       
-      const user = mockUsers.find(u => u.email === email && u.password === password);
-      if (!user) {
-        Alert.alert('Erro', 'Credenciais inválidas');
+      // 2. Chamar a API de login
+      const result = await apiService.login(email, password);
+      console.log("Resposta da API de Login:", result);
+
+      // 3. Verificar se a API retornou um erro
+      if (result.error) {
+        Alert.alert('Erro', result.message || 'Credenciais inválidas');
         return;
       }
 
-      const token = 'mock_token_' + Math.random().toString(36).substr(2, 9);
-      await AsyncStorage.setItem('authToken', token);
-      await AsyncStorage.setItem('user', JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+      // 4. Salvar o token REAL e os dados do usuário
+      await AsyncStorage.setItem('authToken', result.token);
+      await AsyncStorage.setItem('user', JSON.stringify(result.user));
       
+      // 5. Navegar para a Home
       navigation.replace('Home');
+
     } catch (err) {
       console.error('Login error', err);
-      Alert.alert('Erro', 'Falha ao fazer login');
+      Alert.alert('Erro', 'Falha ao conectar com o servidor de login.');
     } finally {
       setLoading(false);
     }
@@ -69,13 +72,14 @@ export default function Login({ navigation }) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
           </TouchableOpacity>
 
-          <Text style={styles.hint}>Teste: admin@local / 123456</Text>
+          <Text style={styles.hint}>Usuário Master: admin@local / 123456</Text>
         </View>
       </View>
     </SafeAreaView>
   );
 }
 
+// (Estilos permanecem os mesmos)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
