@@ -1,0 +1,146 @@
+-- =====================================================
+-- 0. DROPAR TODAS AS TABELAS (SE EXISTIREM)
+-- =====================================================
+
+DROP TABLE IF EXISTS resultados CASCADE;
+DROP TABLE IF EXISTS requisicoes CASCADE;
+DROP TABLE IF EXISTS exames CASCADE;
+DROP TABLE IF EXISTS pacientes CASCADE;
+
+-- =====================================================
+-- 1. CRIAR BANCO DE DADOS (SE NÃO EXISTIR)
+-- =====================================================
+
+-- ATENÇÃO: Execute este bloco APENAS se o banco não existir
+-- Se já existe, pule para a seção 2
+
+DROP DATABASE IF EXISTS prontuario_eletronico;
+
+CREATE DATABASE prontuario_eletronico
+WITH OWNER = postgres
+ENCODING = 'UTF8'
+LC_COLLATE = 'Portuguese_Brazil.1252'
+LC_CTYPE = 'Portuguese_Brazil.1252'
+TABLESPACE = pg_default
+CONNECTION LIMIT = -1;
+
+-- Agora CONECTE ao banco "prontuario_eletronico" e execute o restante:
+
+-- =====================================================
+-- 2. TABELA: pacientes
+-- =====================================================
+CREATE TABLE pacientes (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    cpf VARCHAR(14) NOT NULL UNIQUE,
+    telefone VARCHAR(20),
+    email VARCHAR(255),
+    endereco TEXT,
+    data_nascimento DATE,
+    sexo VARCHAR(20),
+    peso VARCHAR(10),
+    altura VARCHAR(10),
+    historico_familiar VARCHAR(50),
+    habitos_vida VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- 3. TABELA: exames
+-- =====================================================
+CREATE TABLE exames (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- 4. TABELA: requisicoes
+-- =====================================================
+CREATE TABLE requisicoes (
+    id SERIAL PRIMARY KEY,
+    paciente_id INTEGER NOT NULL,
+    exame_ids TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'Pendente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- 5. TABELA: resultados
+-- =====================================================
+CREATE TABLE resultados (
+    id SERIAL PRIMARY KEY,
+    requisicao_id INTEGER NOT NULL,
+    exame_id INTEGER NOT NULL,
+    resultado TEXT,
+    observacoes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (requisicao_id) REFERENCES requisicoes(id) ON DELETE CASCADE,
+    FOREIGN KEY (exame_id) REFERENCES exames(id) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- 6. ÍNDICES (PERFORMANCE)
+-- =====================================================
+CREATE INDEX idx_pacientes_cpf ON pacientes(cpf);
+CREATE INDEX idx_requisicoes_paciente ON requisicoes(paciente_id);
+CREATE INDEX idx_resultados_requisicao ON resultados(requisicao_id);
+
+-- =====================================================
+-- 7. INSERIR PACIENTES
+-- =====================================================
+INSERT INTO pacientes (nome, cpf, telefone, email, endereco, data_nascimento, sexo, peso, altura, historico_familiar, habitos_vida) VALUES
+('Maria Silva Santos', '123.456.789-00', '(11) 98765-4321', 'maria.silva@email.com', 'Rua das Flores, 123 - São Paulo/SP', '1985-03-15', 'Feminino', '65.5', '1.65', 'Sim', 'Regular'),
+('João Pedro Oliveira', '234.567.890-11', '(11) 97654-3210', 'joao.pedro@email.com', 'Av. Paulista, 456 - São Paulo/SP', '1990-07-22', 'Masculino', '82.0', '1.78', 'Sim', 'Bom'),
+('Ana Carolina Costa', '345.678.901-22', '(11) 96543-2109', 'ana.costa@email.com', 'Rua dos Bandeirantes, 789 - São Paulo/SP', '1978-11-08', 'Feminino', '58.3', '1.60', 'Sim', 'Excelente'),
+('Carlos Eduardo Lima', '456.789.012-33', '(11) 95432-1098', 'carlos.lima@email.com', 'Rua Augusta, 321 - São Paulo/SP', '1995-05-30', 'Masculino', '95.2', '1.85', 'Sim', 'Ruim'),
+('Juliana Mendes Rocha', '567.890.123-44', '(11) 94321-0987', 'juliana.rocha@email.com', 'Av. Faria Lima, 654 - São Paulo/SP', '1988-09-12', 'Feminino', '72.8', '1.70', 'Não', 'Excelente'),
+('Roberto Alves Ferreira', '678.901.234-55', '(21) 93210-9876', 'roberto.alves@email.com', 'Rua Copacabana, 987 - Rio de Janeiro/RJ', '1982-02-18', 'Masculino', '88.5', '1.80', 'Sim', 'Regular'),
+('Fernanda Santos Dias', '789.012.345-66', '(21) 92109-8765', 'fernanda.dias@email.com', 'Av. Atlântica, 147 - Rio de Janeiro/RJ', '1992-12-25', 'Feminino', '60.0', '1.62', 'Sim', 'Bom'),
+('Paulo Henrique Souza', '890.123.456-77', '(31) 91098-7654', 'paulo.souza@email.com', 'Rua da Bahia, 258 - Belo Horizonte/MG', '1975-06-14', 'Masculino', '78.0', '1.75', 'Sim', 'Ruim'),
+('Mariana Farias Barbosa', '901.234.567-88', '(31) 90987-6543', 'mariana.barbosa@email.com', 'Av. Afonso Pena, 369 - Belo Horizonte/MG', '1987-04-20', 'Feminino', '68.9', '1.68', 'Sim', 'Bom'),
+('Ricardo Martins Pires', '012.345.678-99', '(41) 89876-5432', 'ricardo.pires@email.com', 'Rua XV de Novembro, 741 - Curitiba/PR', '1993-10-05', 'Masculino', '91.3', '1.82', 'Sim', 'Bom');
+
+-- =====================================================
+-- 8. INSERIR EXAMES DE BIOQUÍMICA
+-- =====================================================
+INSERT INTO exames (nome, descricao) VALUES
+('Glicemia em Jejum', 'Dosagem de glicose no sangue após jejum de 8-12 horas. Valores de referência: 70-99 mg/dL'),
+('Hemoglobina Glicada (HbA1c)', 'Avalia controle glicêmico dos últimos 2-3 meses. Valores de referência: < 5,7%'),
+('Colesterol Total', 'Medição do colesterol total no sangue. Valores desejáveis: < 200 mg/dL'),
+('HDL Colesterol', 'Colesterol "bom". Valores desejáveis: > 40 mg/dL (homens) e > 50 mg/dL (mulheres)'),
+('LDL Colesterol', 'Colesterol "ruim". Valores desejáveis: < 100 mg/dL'),
+('VLDL Colesterol', 'Transportador de triglicerídeos. Valores desejáveis: < 30 mg/dL'),
+('Triglicerídeos', 'Gorduras no sangue. Valores desejáveis: < 150 mg/dL'),
+('Ureia', 'Avalia função renal. Valores de referência: 15-40 mg/dL'),
+('Creatinina', 'Indicador de função renal. Valores: 0,6-1,2 mg/dL (homens) e 0,5-1,0 mg/dL (mulheres)'),
+('Ácido Úrico', 'Pode indicar gota ou problemas renais. Valores: 3,5-7,0 mg/dL (homens) e 2,5-6,0 mg/dL (mulheres)'),
+('TGO/AST', 'Enzima hepática. Valores de referência: até 40 U/L'),
+('TGP/ALT', 'Enzima hepática. Valores de referência: até 41 U/L'),
+('Gama GT', 'Marcador de função hepática. Valores: até 55 U/L (homens) e até 38 U/L (mulheres)'),
+('Fosfatase Alcalina', 'Enzima relacionada a fígado e ossos. Valores: 40-150 U/L'),
+('Bilirrubina Total', 'Produto da degradação da hemoglobina. Valores: até 1,2 mg/dL'),
+('Bilirrubina Direta', 'Fração conjugada. Valores: até 0,3 mg/dL'),
+('Bilirrubina Indireta', 'Fração não conjugada. Valores: até 0,9 mg/dL'),
+('Proteínas Totais', 'Proteínas no sangue. Valores: 6,0-8,0 g/dL'),
+('Albumina', 'Principal proteína do sangue. Valores: 3,5-5,0 g/dL'),
+('Globulinas', 'Outras proteínas séricas. Valores: 2,0-3,5 g/dL'),
+('Sódio (Na+)', 'Eletrólito importante. Valores: 135-145 mEq/L'),
+('Potássio (K+)', 'Eletrólito crucial para músculos. Valores: 3,5-5,0 mEq/L'),
+('Cálcio Total', 'Mineral essencial. Valores: 8,5-10,5 mg/dL'),
+('Magnésio', 'Mineral importante. Valores: 1,7-2,2 mg/dL'),
+('Fósforo', 'Mineral relacionado aos ossos. Valores: 2,5-4,5 mg/dL'),
+('Ferro Sérico', 'Ferro disponível no sangue. Valores: 50-150 µg/dL'),
+('Ferritina', 'Reserva de ferro. Valores: 30-300 ng/mL (homens) e 15-150 ng/mL (mulheres)'),
+('TSH', 'Hormônio estimulante da tireoide. Valores: 0,4-4,0 mUI/L'),
+('T4 Livre', 'Hormônio tireoidiano. Valores: 0,8-1,8 ng/dL'),
+('PCR (Proteína C Reativa)', 'Marcador de inflamação. Valores: < 1,0 mg/L');
+
+-- =====================================================
+-- 9. VERIFICAR INSERÇÕES
+-- =====================================================
+SELECT 'Pacientes cadastrados:' AS info, COUNT(*) AS total FROM pacientes
+UNION ALL
+SELECT 'Exames cadastrados:' AS info, COUNT(*) AS total FROM exames;

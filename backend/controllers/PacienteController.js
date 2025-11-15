@@ -1,183 +1,187 @@
-let pacientes = [];
-let nextId = 1;
+const pool = require('../config/database');
+const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-exports.listarTodos = (req, res) => {
-    try {
-        console.log("Listando pacientes");
-        res.status(200).json({
-            error: false,
-            data: pacientes,
-            total: pacientes.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar pacientes: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// LISTAR TODOS OS PACIENTES
+exports.listarTodos = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM pacientes ORDER BY id DESC');
+    
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows),
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao listar pacientes:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar pacientes'
+    });
+  }
 };
 
-exports.buscarPorId = (req, res) => {
-    try {
-        const { id } = req.params;
-        const paciente = pacientes.find(p => p.id == id);
-        
-        if (!paciente) {
-            return res.status(404).json({
-                error: true, 
-                message: "Paciente não encontrado!"
-            });
-        }
-        
-        res.status(200).json({
-            error: false, 
-            paciente: paciente
-        });
-    } catch (error) {
-        console.error("Erro ao buscar paciente: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+// BUSCAR PACIENTE POR ID
+exports.buscarPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM pacientes WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Paciente não encontrado'
+      });
     }
+
+    res.status(200).json({
+      error: false,
+      paciente: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao buscar paciente:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar paciente'
+    });
+  }
 };
 
-exports.criar = (req, res) => {
-    try {
-        const { 
-            pnome, 
-            pcpf, 
-            ptelefone, 
-            pemail, 
-            pendereco, 
-            pdataNascimento,
-            psexo,
-            ppeso,
-            paltura,
-            phistoricoFamiliar,
-            phabitosVida
-        } = req.body;
-        
-        if (!pnome || !pcpf) {
-            return res.status(400).json({
-                error: true, 
-                message: "Nome e CPF são obrigatórios"
-            });
-        }
+// CRIAR NOVO PACIENTE
+exports.criar = async (req, res) => {
+  try {
+    const {
+      pnome,
+      pcpf,
+      ptelefone,
+      pemail,
+      pendereco,
+      pdataNascimento,
+      psexo,
+      ppeso,
+      paltura,
+      phistoricoFamiliar,
+      phabitosVida
+    } = req.body;
 
-        const cpfExiste = pacientes.find(p => p.cpf === pcpf);
-        if (cpfExiste) {
-            return res.status(400).json({
-                error: true, 
-                message: "CPF já cadastrado"
-            });
-        }
-
-        const novoPaciente = {
-            id: nextId++,
-            nome: pnome,
-            cpf: pcpf,
-            telefone: ptelefone || '',
-            email: pemail || '',
-            endereco: pendereco || '',
-            dataNascimento: pdataNascimento || '',
-            sexo: psexo || '',
-            peso: ppeso || '',
-            altura: paltura || '',
-            historicoFamiliar: phistoricoFamiliar || '',
-            habitosVida: phabitosVida || '',
-            dataCadastro: new Date().toISOString()
-        };
-
-        pacientes.push(novoPaciente);
-
-        console.log("Paciente inserido: ", novoPaciente);
-
-        res.status(201).json({
-            error: false, 
-            message: "Paciente inserido com sucesso",
-            paciente: novoPaciente
-        });
-    } catch (error) {
-        console.error("Erro ao inserir paciente: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+    if (!pnome || !pcpf) {
+      return res.status(400).json({
+        error: true,
+        message: 'Nome e CPF são obrigatórios'
+      });
     }
+
+    const cpfExiste = await pool.query('SELECT id FROM pacientes WHERE cpf = $1', [pcpf]);
+    if (cpfExiste.rowCount > 0) {
+      return res.status(400).json({
+        error: true,
+        message: 'CPF já cadastrado'
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO pacientes 
+       (nome, cpf, telefone, email, endereco, data_nascimento, sexo, peso, altura, historico_familiar, habitos_vida) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+       RETURNING *`,
+      [pnome, pcpf, ptelefone, pemail, pendereco, pdataNascimento, psexo, ppeso, paltura, phistoricoFamiliar, phabitosVida]
+    );
+
+    res.status(201).json({
+      error: false,
+      message: 'Paciente inserido com sucesso',
+      paciente: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao criar paciente:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao criar paciente'
+    });
+  }
 };
 
-exports.atualizar = (req, res) => {
-    try {
-        const { id } = req.params;
-        const { pnome, pcpf, ptelefone, pemail, pendereco, pdataNascimento, psexo, ppeso, paltura, phistoricoFamiliar, phabitosVida } = req.body;
+// ATUALIZAR PACIENTE
+exports.atualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      pnome,
+      pcpf,
+      ptelefone,
+      pemail,
+      pendereco,
+      pdataNascimento,
+      psexo,
+      ppeso,
+      paltura,
+      phistoricoFamiliar,
+      phabitosVida
+    } = req.body;
 
-        if (!pnome || !pcpf || !id) {
-            return res.status(400).json({
-                error: true, 
-                message: "Informe: id, nome e CPF!"
-            });
-        }
-
-        const pacienteIndex = pacientes.findIndex(p => p.id == id);
-
-        if (pacienteIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Não foi encontrado paciente com esse ID"
-            });
-        }
-
-        pacientes[pacienteIndex] = {
-            ...pacientes[pacienteIndex],
-            nome: pnome,
-            cpf: pcpf,
-            telefone: ptelefone || pacientes[pacienteIndex].telefone,
-            email: pemail || pacientes[pacienteIndex].email,
-            endereco: pendereco || pacientes[pacienteIndex].endereco,
-            dataNascimento: pdataNascimento || pacientes[pacienteIndex].dataNascimento,
-            sexo: psexo || pacientes[pacienteIndex].sexo,
-            peso: ppeso || pacientes[pacienteIndex].peso,
-            altura: paltura || pacientes[pacienteIndex].altura,
-            historicoFamiliar: phistoricoFamiliar || pacientes[pacienteIndex].historicoFamiliar,
-            habitosVida: phabitosVida || pacientes[pacienteIndex].habitosVida,
-            dataAtualizacao: new Date().toISOString()
-        };
-
-        console.log("Paciente atualizado: ", pacientes[pacienteIndex]);
-
-        res.status(200).json({
-            error: false, 
-            message: "Paciente atualizado com sucesso!", 
-            paciente: pacientes[pacienteIndex]
-        });
-    } catch (error) {
-        console.error("Erro ao atualizar paciente: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Ocorreu um erro ao tentar atualizar o paciente!"
-        });
+    const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [id]);
+    if (pacienteExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Paciente não encontrado'
+      });
     }
+
+    const cpfExiste = await pool.query('SELECT id FROM pacientes WHERE cpf = $1 AND id != $2', [pcpf, id]);
+    if (cpfExiste.rowCount > 0) {
+      return res.status(400).json({
+        error: true,
+        message: 'CPF já cadastrado para outro paciente'
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE pacientes 
+       SET nome = $1, cpf = $2, telefone = $3, email = $4, endereco = $5, 
+           data_nascimento = $6, sexo = $7, peso = $8, altura = $9, 
+           historico_familiar = $10, habitos_vida = $11
+       WHERE id = $12
+       RETURNING *`,
+      [pnome, pcpf, ptelefone, pemail, pendereco, pdataNascimento, psexo, ppeso, paltura, phistoricoFamiliar, phabitosVida, id]
+    );
+
+    res.status(200).json({
+      error: false,
+      message: 'Paciente atualizado com sucesso',
+      paciente: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar paciente:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao atualizar paciente'
+    });
+  }
 };
 
-exports.deletar = (req, res) => {
-    try {
-        const { id } = req.params;
+// DELETAR PACIENTE
+exports.deletar = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-        const pacienteIndex = pacientes.findIndex(p => p.id == id);
-
-        if (pacienteIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Erro ao remover paciente, paciente com o ID não encontrado"
-            });
-        }
-
-        const pacienteRemovido = pacientes.splice(pacienteIndex, 1)[0];
-
-        console.log("Paciente removido: ", pacienteRemovido);
-
-        res.status(200).json({
-            error: false, 
-            message: "Paciente removido com sucesso!"
-        });
-    } catch (error) {
-        console.error("Erro ao remover paciente: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Erro ao remover paciente!"
-        });
+    const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [id]);
+    if (pacienteExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Paciente não encontrado'
+      });
     }
+
+    await pool.query('DELETE FROM pacientes WHERE id = $1', [id]);
+
+    res.status(200).json({
+      error: false,
+      message: 'Paciente removido com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao deletar paciente:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao deletar paciente'
+    });
+  }
 };

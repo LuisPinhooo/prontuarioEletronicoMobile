@@ -1,145 +1,139 @@
-let exames = [];
-let nextId = 1;
+const pool = require('../config/database');
+const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-exports.listarTodos = (req, res) => {
-    try {
-        console.log("Listando exames");
-        res.status(200).json({
-            error: false,
-            data: exames,
-            total: exames.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar exames: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// LISTAR TODOS OS EXAMES
+exports.listarTodos = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM exames ORDER BY id DESC');
+    
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows),
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao listar exames:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar exames'
+    });
+  }
 };
 
-exports.buscarPorId = (req, res) => {
-    try {
-        const { id } = req.params;
-        const exame = exames.find(e => e.id == id);
-        
-        if (!exame) {
-            return res.status(404).json({
-                error: true, 
-                message: "Exame não encontrado!"
-            });
-        }
-        
-        res.status(200).json({
-            error: false, 
-            exame: exame
-        });
-    } catch (error) {
-        console.error("Erro ao buscar exame: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+// BUSCAR EXAME POR ID
+exports.buscarPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM exames WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exame não encontrado'
+      });
     }
+
+    res.status(200).json({
+      error: false,
+      exame: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao buscar exame:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar exame'
+    });
+  }
 };
 
-exports.criar = (req, res) => {
-    try {
-        const { pnome, pdescricao } = req.body;
-        
-        if (!pnome) {
-            return res.status(400).json({
-                error: true, 
-                message: "Nome do exame é obrigatório"
-            });
-        }
+// CRIAR NOVO EXAME
+exports.criar = async (req, res) => {
+  try {
+    const { pnome, pdescricao } = req.body;
 
-        const novoExame = {
-            id: nextId++,
-            nome: pnome,
-            descricao: pdescricao || '',
-            dataCadastro: new Date().toISOString()
-        };
-
-        exames.push(novoExame);
-
-        console.log("Exame inserido: ", novoExame);
-
-        res.status(201).json({
-            error: false, 
-            message: "Exame inserido com sucesso",
-            exame: novoExame
-        });
-    } catch (error) {
-        console.error("Erro ao inserir exame: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+    if (!pnome) {
+      return res.status(400).json({
+        error: true,
+        message: 'Nome do exame é obrigatório'
+      });
     }
+
+    const result = await pool.query(
+      'INSERT INTO exames (nome, descricao) VALUES ($1, $2) RETURNING *',
+      [pnome, pdescricao]
+    );
+
+    res.status(201).json({
+      error: false,
+      message: 'Exame inserido com sucesso',
+      exame: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao criar exame:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao criar exame'
+    });
+  }
 };
 
-exports.atualizar = (req, res) => {
-    try {
-        const { id } = req.params;
-        const { pnome, pdescricao } = req.body;
+// ATUALIZAR EXAME
+exports.atualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pnome, pdescricao } = req.body;
 
-        if (!pnome || !id) {
-            return res.status(400).json({
-                error: true, 
-                message: "Informe: id e nome do exame!"
-            });
-        }
-
-        const exameIndex = exames.findIndex(e => e.id == id);
-
-        if (exameIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Não foi encontrado exame com esse ID"
-            });
-        }
-
-        exames[exameIndex] = {
-            ...exames[exameIndex],
-            nome: pnome,
-            descricao: pdescricao || exames[exameIndex].descricao,
-            dataAtualizacao: new Date().toISOString()
-        };
-
-        console.log("Exame atualizado: ", exames[exameIndex]);
-
-        res.status(200).json({
-            error: false, 
-            message: "Exame atualizado com sucesso!", 
-            exame: exames[exameIndex]
-        });
-    } catch (error) {
-        console.error("Erro ao atualizar exame: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Ocorreu um erro ao tentar atualizar o exame!"
-        });
+    const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [id]);
+    if (exameExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exame não encontrado'
+      });
     }
+
+    const result = await pool.query(
+      'UPDATE exames SET nome = $1, descricao = $2 WHERE id = $3 RETURNING *',
+      [pnome, pdescricao, id]
+    );
+
+    res.status(200).json({
+      error: false,
+      message: 'Exame atualizado com sucesso',
+      exame: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar exame:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao atualizar exame'
+    });
+  }
 };
 
-exports.deletar = (req, res) => {
-    try {
-        const { id } = req.params;
+// DELETAR EXAME
+exports.deletar = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-        const exameIndex = exames.findIndex(e => e.id == id);
-
-        if (exameIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Erro ao remover exame, exame com o ID não encontrado"
-            });
-        }
-
-        const exameRemovido = exames.splice(exameIndex, 1)[0];
-
-        console.log("Exame removido: ", exameRemovido);
-
-        res.status(200).json({
-            error: false, 
-            message: "Exame removido com sucesso!"
-        });
-    } catch (error) {
-        console.error("Erro ao remover exame: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Erro ao remover exame!"
-        });
+    const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [id]);
+    if (exameExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exame não encontrado'
+      });
     }
+
+    await pool.query('DELETE FROM exames WHERE id = $1', [id]);
+
+    res.status(200).json({
+      error: false,
+      message: 'Exame removido com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao deletar exame:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao deletar exame'
+    });
+  }
 };

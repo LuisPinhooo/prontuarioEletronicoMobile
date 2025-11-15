@@ -1,162 +1,168 @@
-let requisicoes = [];
-let nextId = 1;
+const pool = require('../config/database');
+const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-exports.listarTodos = (req, res) => {
-    try {
-        console.log("Listando requisições");
-        res.status(200).json({
-            error: false,
-            data: requisicoes,
-            total: requisicoes.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar requisições: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// LISTAR TODAS AS REQUISIÇÕES
+exports.listarTodos = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM requisicoes ORDER BY id DESC');
+    
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows), // ← UMA LINHA SÓ!
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao listar requisições:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar requisições'
+    });
+  }
 };
 
-exports.buscarPorId = (req, res) => {
-    try {
-        const { id } = req.params;
-        const requisicao = requisicoes.find(r => r.id == id);
-        
-        if (!requisicao) {
-            return res.status(404).json({
-                error: true, 
-                message: "Requisição não encontrada!"
-            });
-        }
-        
-        res.status(200).json({
-            error: false, 
-            requisicao: requisicao
-        });
-    } catch (error) {
-        console.error("Erro ao buscar requisição: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+// BUSCAR REQUISIÇÃO POR ID
+exports.buscarPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM requisicoes WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Requisição não encontrada'
+      });
     }
+
+    res.status(200).json({
+      error: false,
+      requisicao: convertRowToCamelCase(result.rows[0]) // ← UMA LINHA SÓ!
+    });
+  } catch (error) {
+    console.error('Erro ao buscar requisição:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar requisição'
+    });
+  }
 };
 
-exports.buscarPorPaciente = (req, res) => {
-    try {
-        const { pacienteId } = req.params;
-        const reqsPaciente = requisicoes.filter(r => r.pacienteId == pacienteId);
-        
-        res.status(200).json({
-            error: false, 
-            data: reqsPaciente,
-            total: reqsPaciente.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar requisições do paciente: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// BUSCAR REQUISIÇÕES POR PACIENTE
+exports.buscarPorPaciente = async (req, res) => {
+  try {
+    const { pacienteId } = req.params;
+    const result = await pool.query('SELECT * FROM requisicoes WHERE paciente_id = $1 ORDER BY id DESC', [pacienteId]);
+
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows), // ← UMA LINHA SÓ!
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao buscar requisições do paciente:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar requisições'
+    });
+  }
 };
 
-exports.criar = (req, res) => {
-    try {
-        const { ppacienteId, pexameIds } = req.body;
-        
-        if (!ppacienteId || !pexameIds || pexameIds.length === 0) {
-            return res.status(400).json({
-                error: true, 
-                message: "Paciente ID e pelo menos um exame são obrigatórios"
-            });
-        }
+// CRIAR NOVA REQUISIÇÃO
+exports.criar = async (req, res) => {
+  try {
+    const { ppacienteId, pexameIds } = req.body;
 
-        const novaRequisicao = {
-            id: nextId++,
-            pacienteId: ppacienteId,
-            exameIds: pexameIds,
-            status: 'Pendente',
-            dataCadastro: new Date().toISOString()
-        };
-
-        requisicoes.push(novaRequisicao);
-
-        console.log("Requisição inserida: ", novaRequisicao);
-
-        res.status(201).json({
-            error: false, 
-            message: "Requisição inserida com sucesso",
-            requisicao: novaRequisicao
-        });
-    } catch (error) {
-        console.error("Erro ao inserir requisição: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+    if (!ppacienteId || !pexameIds || pexameIds.length === 0) {
+      return res.status(400).json({
+        error: true,
+        message: 'Paciente e exames são obrigatórios'
+      });
     }
+
+    const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [ppacienteId]);
+    
+    if (pacienteExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Paciente não encontrado'
+      });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO requisicoes (paciente_id, exame_ids, status) VALUES ($1, $2, $3) RETURNING *',
+      [ppacienteId, JSON.stringify(pexameIds), 'Pendente']
+    );
+
+    res.status(201).json({
+      error: false,
+      message: 'Requisição criada com sucesso',
+      requisicao: convertRowToCamelCase(result.rows[0]) // ← UMA LINHA SÓ!
+    });
+  } catch (error) {
+    console.error('❌ Erro ao criar requisição:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao criar requisição'
+    });
+  }
 };
 
-exports.atualizar = (req, res) => {
-    try {
-        const { id } = req.params;
-        const { ppacienteId, pexameIds } = req.body;
+// ATUALIZAR REQUISIÇÃO
+exports.atualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ppacienteId, pexameIds, pstatus } = req.body;
 
-        if (!ppacienteId || !pexameIds || !id) {
-            return res.status(400).json({
-                error: true, 
-                message: "Informe: id, pacienteId e exameIds!"
-            });
-        }
-
-        const requisicaoIndex = requisicoes.findIndex(r => r.id == id);
-
-        if (requisicaoIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Não foi encontrada requisição com esse ID"
-            });
-        }
-
-        requisicoes[requisicaoIndex] = {
-            ...requisicoes[requisicaoIndex],
-            pacienteId: ppacienteId,
-            exameIds: pexameIds,
-            dataAtualizacao: new Date().toISOString()
-        };
-
-        console.log("Requisição atualizada: ", requisicoes[requisicaoIndex]);
-
-        res.status(200).json({
-            error: false, 
-            message: "Requisição atualizada com sucesso!", 
-            requisicao: requisicoes[requisicaoIndex]
-        });
-    } catch (error) {
-        console.error("Erro ao atualizar requisição: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Ocorreu um erro ao tentar atualizar a requisição!"
-        });
+    const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [id]);
+    if (requisicaoExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Requisição não encontrada'
+      });
     }
+
+    const result = await pool.query(
+      'UPDATE requisicoes SET paciente_id = $1, exame_ids = $2, status = $3 WHERE id = $4 RETURNING *',
+      [ppacienteId, JSON.stringify(pexameIds), pstatus || 'Pendente', id]
+    );
+
+    res.status(200).json({
+      error: false,
+      message: 'Requisição atualizada com sucesso',
+      requisicao: convertRowToCamelCase(result.rows[0]) // ← UMA LINHA SÓ!
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar requisição:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao atualizar requisição'
+    });
+  }
 };
 
-exports.deletar = (req, res) => {
-    try {
-        const { id } = req.params;
+// DELETAR REQUISIÇÃO
+exports.deletar = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-        const requisicaoIndex = requisicoes.findIndex(r => r.id == id);
-
-        if (requisicaoIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Erro ao remover requisição, requisição com o ID não encontrado"
-            });
-        }
-
-        const requisicaoRemovida = requisicoes.splice(requisicaoIndex, 1)[0];
-
-        console.log("Requisição removida: ", requisicaoRemovida);
-
-        res.status(200).json({
-            error: false, 
-            message: "Requisição removida com sucesso!"
-        });
-    } catch (error) {
-        console.error("Erro ao remover requisição: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Erro ao remover requisição!"
-        });
+    const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [id]);
+    if (requisicaoExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Requisição não encontrada'
+      });
     }
+
+    await pool.query('DELETE FROM requisicoes WHERE id = $1', [id]);
+
+    res.status(200).json({
+      error: false,
+      message: 'Requisição removida com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao deletar requisição:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao deletar requisição'
+    });
+  }
 };

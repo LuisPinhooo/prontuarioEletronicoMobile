@@ -1,165 +1,177 @@
-let resultados = [];
-let nextId = 1;
+const pool = require('../config/database');
+const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-exports.listarTodos = (req, res) => {
-    try {
-        console.log("Listando resultados");
-        res.status(200).json({
-            error: false,
-            data: resultados,
-            total: resultados.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar resultados: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// LISTAR TODOS OS RESULTADOS
+exports.listarTodos = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM resultados ORDER BY id DESC');
+    
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows),
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao listar resultados:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar resultados'
+    });
+  }
 };
 
-exports.buscarPorId = (req, res) => {
-    try {
-        const { id } = req.params;
-        const resultado = resultados.find(r => r.id == id);
-        
-        if (!resultado) {
-            return res.status(404).json({
-                error: true, 
-                message: "Resultado não encontrado!"
-            });
-        }
-        
-        res.status(200).json({
-            error: false, 
-            resultado: resultado
-        });
-    } catch (error) {
-        console.error("Erro ao buscar resultado: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+// BUSCAR RESULTADO POR ID
+exports.buscarPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM resultados WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Resultado não encontrado'
+      });
     }
+
+    res.status(200).json({
+      error: false,
+      resultado: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao buscar resultado:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar resultado'
+    });
+  }
 };
 
-exports.buscarPorRequisicao = (req, res) => {
-    try {
-        const { requisicaoId } = req.params;
-        const resRequisicao = resultados.filter(r => r.requisicaoId == requisicaoId);
-        
-        res.status(200).json({
-            error: false, 
-            data: resRequisicao,
-            total: resRequisicao.length
-        });
-    } catch (error) {
-        console.error("Erro ao buscar resultados da requisição: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
-    }
+// BUSCAR RESULTADOS POR REQUISIÇÃO
+exports.buscarPorRequisicao = async (req, res) => {
+  try {
+    const { requisicaoId } = req.params;
+    const result = await pool.query('SELECT * FROM resultados WHERE requisicao_id = $1 ORDER BY id', [requisicaoId]);
+
+    res.status(200).json({
+      error: false,
+      data: convertRowsToCamelCase(result.rows),
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao buscar resultados da requisição:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar resultados'
+    });
+  }
 };
 
-exports.criar = (req, res) => {
-    try {
-        const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
-        
-        if (!prequisicaoId || !pexameId || !presultado) {
-            return res.status(400).json({
-                error: true, 
-                message: "Requisição ID, Exame ID e Resultado são obrigatórios"
-            });
-        }
+// CRIAR NOVO RESULTADO
+exports.criar = async (req, res) => {
+  try {
+    const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
 
-        const novoResultado = {
-            id: nextId++,
-            requisicaoId: prequisicaoId,
-            exameId: pexameId,
-            resultado: presultado,
-            observacoes: pobservacoes || '',
-            dataCadastro: new Date().toISOString()
-        };
-
-        resultados.push(novoResultado);
-
-        console.log("Resultado inserido: ", novoResultado);
-
-        res.status(201).json({
-            error: false, 
-            message: "Resultado inserido com sucesso",
-            resultado: novoResultado
-        });
-    } catch (error) {
-        console.error("Erro ao inserir resultado: ", error);
-        res.status(500).json({ error: true, message: "Erro interno do servidor" });
+    if (!prequisicaoId || !pexameId) {
+      return res.status(400).json({
+        error: true,
+        message: 'Requisição e exame são obrigatórios'
+      });
     }
+
+    const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [prequisicaoId]);
+    
+    if (requisicaoExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Requisição não encontrada'
+      });
+    }
+
+    const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [pexameId]);
+    
+    if (exameExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exame não encontrado'
+      });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES ($1, $2, $3, $4) RETURNING *',
+      [prequisicaoId, pexameId, presultado, pobservacoes]
+    );
+
+    res.status(201).json({
+      error: false,
+      message: 'Resultado inserido com sucesso',
+      resultado: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('❌ Erro ao criar resultado:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao criar resultado'
+    });
+  }
 };
 
-exports.atualizar = (req, res) => {
-    try {
-        const { id } = req.params;
-        const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
+// ATUALIZAR RESULTADO
+exports.atualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { presultado, pobservacoes } = req.body;
 
-        if (!prequisicaoId || !pexameId || !presultado || !id) {
-            return res.status(400).json({
-                error: true, 
-                message: "Informe: id, requisicaoId, exameId e resultado!"
-            });
-        }
-
-        const resultadoIndex = resultados.findIndex(r => r.id == id);
-
-        if (resultadoIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Não foi encontrado resultado com esse ID"
-            });
-        }
-
-        resultados[resultadoIndex] = {
-            ...resultados[resultadoIndex],
-            requisicaoId: prequisicaoId,
-            exameId: pexameId,
-            resultado: presultado,
-            observacoes: pobservacoes || resultados[resultadoIndex].observacoes,
-            dataAtualizacao: new Date().toISOString()
-        };
-
-        console.log("Resultado atualizado: ", resultados[resultadoIndex]);
-
-        res.status(200).json({
-            error: false, 
-            message: "Resultado atualizado com sucesso!", 
-            resultado: resultados[resultadoIndex]
-        });
-    } catch (error) {
-        console.error("Erro ao atualizar resultado: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Ocorreu um erro ao tentar atualizar o resultado!"
-        });
+    const resultadoExiste = await pool.query('SELECT id FROM resultados WHERE id = $1', [id]);
+    if (resultadoExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Resultado não encontrado'
+      });
     }
+
+    const result = await pool.query(
+      'UPDATE resultados SET resultado = $1, observacoes = $2 WHERE id = $3 RETURNING *',
+      [presultado, pobservacoes, id]
+    );
+
+    res.status(200).json({
+      error: false,
+      message: 'Resultado atualizado com sucesso',
+      resultado: convertRowToCamelCase(result.rows[0])
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar resultado:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao atualizar resultado'
+    });
+  }
 };
 
-exports.deletar = (req, res) => {
-    try {
-        const { id } = req.params;
+// DELETAR RESULTADO
+exports.deletar = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-        const resultadoIndex = resultados.findIndex(r => r.id == id);
-
-        if (resultadoIndex === -1) {
-            return res.status(404).json({
-                error: true, 
-                message: "Erro ao remover resultado, resultado com o ID não encontrado"
-            });
-        }
-
-        const resultadoRemovido = resultados.splice(resultadoIndex, 1)[0];
-
-        console.log("Resultado removido: ", resultadoRemovido);
-
-        res.status(200).json({
-            error: false, 
-            message: "Resultado removido com sucesso!"
-        });
-    } catch (error) {
-        console.error("Erro ao remover resultado: ", error);
-        res.status(500).json({
-            error: true, 
-            message: "Erro ao remover resultado!"
-        });
+    const resultadoExiste = await pool.query('SELECT id FROM resultados WHERE id = $1', [id]);
+    if (resultadoExiste.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'Resultado não encontrado'
+      });
     }
+
+    await pool.query('DELETE FROM resultados WHERE id = $1', [id]);
+
+    res.status(200).json({
+      error: false,
+      message: 'Resultado removido com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao deletar resultado:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao deletar resultado'
+    });
+  }
 };
