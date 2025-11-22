@@ -1,0 +1,39 @@
+{
+    "status": "success",
+    "total_pacientes_analisados": 10,
+    "medidas_estatisticas_idade": {
+        "Média": 41.8,
+        "Mediana": 38.0,
+        "Moda": 18,
+        "Desvio Padrão": 18.28,
+        "Variância": 334.18,
+        "Mínimo": 18,
+        "Máximo": 72
+    },
+    "tabela_centroides": [
+        {
+            "Cluster": 0,
+            "Média Idade (Anos)": 70.0,
+            "Média Glicose (mg/dL)": 137.8,
+            "Média Colesterol (Total)": 240.2,
+            "Perfil Clínico": "Alto Risco Metabólico-Cardiovascular",
+            "Quantidade Pacientes": 2
+        },
+        {
+            "Cluster": 2,
+            "Média Idade (Anos)": 44.2,
+            "Média Glicose (mg/dL)": 96.2,
+            "Média Colesterol (Total)": 240.5,
+            "Perfil Clínico": "Risco Intermediário/Monitoramento",
+            "Quantidade Pacientes": 4
+        },
+        {
+            "Cluster": 1,
+            "Média Idade (Anos)": 25.2,
+            "Média Glicose (mg/dL)": 94.0,
+            "Média Colesterol (Total)": 182.7,
+            "Perfil Clínico": "Baixo Risco (Saudável)",
+            "Quantidade Pacientes": 4
+        }
+    ]
+}
