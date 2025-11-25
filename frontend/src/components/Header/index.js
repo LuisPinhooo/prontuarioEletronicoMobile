@@ -1,23 +1,39 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Header() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Sistema de Prontuário Eletrônico</Text>
-      <Text style={styles.headerSubtitle}>Bem-vindo(a)!</Text>
+      {/* Botão Hambúrguer para abrir Drawer */}
+      <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
+        <Text style={styles.menuIcon}>☰</Text>
+      </TouchableOpacity>
+      <View style={styles.headerContent}>
+        <Text style={styles.headerTitle}>Sistema de Prontuário Eletrônico</Text>
+        <Text style={styles.headerSubtitle}>Bem-vindo(a)!</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#2ecc71", 
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 20
+    backgroundColor: "#2ecc71",
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuIcon: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 24,

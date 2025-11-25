@@ -148,45 +148,10 @@ def generate_graphics(results, output_dir="graficos"):
     plt.savefig(f'{output_dir}/01_distribuicao_clusters.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # --- GRÁFICO 2: Tabela de Centroides + Estatísticas ---
-    fig = plt.figure(figsize=(16, 10))
-    
-    # Seção 1: Medidas Estatísticas de Idade (Topo)
-    ax1 = plt.subplot(2, 1, 1)
-    ax1.axis('tight')
-    ax1.axis('off')
-    
-    stats_data = []
-    for chave, valor in results["medidas_estatisticas_idade"].items():
-        stats_data.append([chave, str(valor)])
-    
-    table_stats = ax1.table(cellText=stats_data,
-                            colLabels=['Medida Estatística', 'Valor'],
-                            cellLoc='center', loc='upper center',
-                            colWidths=[0.4, 0.4])
-    
-    table_stats.auto_set_font_size(False)
-    table_stats.set_fontsize(11)
-    table_stats.scale(1, 2.5)
-    
-    for i in range(len(stats_data) + 1):
-        for j in range(2):
-            cell = table_stats[(i, j)]
-            if i == 0:
-                cell.set_facecolor('#34495e')
-                cell.set_text_props(weight='bold', color='white', fontsize=12)
-            else:
-                cell.set_facecolor('#ecf0f1')
-                cell.set_text_props(weight='bold', color='#2c3e50', fontsize=11)
-    
-    ax1.text(0.5, 0.95, 'MEDIDAS ESTATÍSTICAS - IDADE', 
-             transform=ax1.transAxes, fontsize=14, fontweight='bold',
-             ha='center', va='top')
-    
-    # Seção 2: Tabela de Centroides (Baixo)
-    ax2 = plt.subplot(2, 1, 2)
-    ax2.axis('tight')
-    ax2.axis('off')
+    # --- GRÁFICO 2: Tabela de Centroides ---
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.axis('tight')
+    ax.axis('off')
     
     centroid_data = results["tabela_centroides"]
     
@@ -201,10 +166,10 @@ def generate_graphics(results, output_dir="graficos"):
             c['Perfil Clínico']
         ])
     
-    table_centroides = ax2.table(cellText=tabela_dados,
-                                 colLabels=['Cluster', 'Nº Pac.', 'Idade', 'Glicose', 'Colesterol', 'Perfil Clínico'],
-                                 cellLoc='center', loc='center',
-                                 colWidths=[0.1, 0.08, 0.1, 0.12, 0.13, 0.37])
+    table_centroides = ax.table(cellText=tabela_dados,
+                                colLabels=['Cluster', 'Nº Pac.', 'Idade', 'Glicose', 'Colesterol', 'Perfil Clínico'],
+                                cellLoc='center', loc='center',
+                                colWidths=[0.1, 0.08, 0.1, 0.12, 0.13, 0.37])
     
     table_centroides.auto_set_font_size(False)
     table_centroides.set_fontsize(10)
@@ -220,9 +185,7 @@ def generate_graphics(results, output_dir="graficos"):
                 cell.set_facecolor(cores[i-1])
                 cell.set_text_props(weight='bold', color='white', fontsize=10)
     
-    ax2.text(0.5, 0.95, 'ANÁLISE E PERFIS DE CLUSTER', 
-             transform=ax2.transAxes, fontsize=14, fontweight='bold',
-             ha='center', va='top')
+    ax.set_title('ANÁLISE E PERFIS DE CLUSTER', fontsize=14, fontweight='bold', pad=20)
     
     plt.tight_layout()
     plt.savefig(f'{output_dir}/02_tabela_centroides.png', dpi=300, bbox_inches='tight')
@@ -246,7 +209,14 @@ if __name__ == '__main__':
         results = run_kmeans_analysis(df_real)
     
     if results["status"] == "success":
-        print("✅ Gerando gráficos...\n")
+        # Exibir medidas estatísticas
+        print("="*60)
+        print("📈 MEDIDAS ESTATÍSTICAS - IDADE")
+        print("="*60)
+        for chave, valor in results["medidas_estatisticas_idade"].items():
+            print(f"{chave:.<30} {valor}")
+        
+        print("\n✅ Gerando gráficos...\n")
         generate_graphics(results)
         
         try:

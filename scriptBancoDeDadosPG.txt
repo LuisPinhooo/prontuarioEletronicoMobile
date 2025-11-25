@@ -24,6 +24,28 @@ CONNECTION LIMIT = -1;
 -- Agora CONECTE ao banco "prontuario_eletronico" e execute o restante:
 
 -- =====================================================
+-- TABELA: usuarios (AUTENTICAÇÃO)
+-- =====================================================
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    ativo BOOLEAN DEFAULT TRUE,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Criar índice no email para melhorar performance
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+
+-- Inserir usuário master padrão (senha: 123456)
+-- Hash gerado com: bcrypt.hashSync('123456', 10)
+INSERT INTO usuarios (nome, email, senha, ativo)
+VALUES ('Admin', 'admin@local', '$2a$10$YourHashedPasswordHere', TRUE)
+ON CONFLICT (email) DO NOTHING;
+
+-- =====================================================
 -- 2. TABELA: pacientes
 -- =====================================================
 CREATE TABLE pacientes (
@@ -71,7 +93,7 @@ CREATE TABLE resultados (
     id SERIAL PRIMARY KEY,
     requisicao_id INTEGER NOT NULL,
     exame_id INTEGER NOT NULL,
-    resultado TEXT,
+    resultado NUMERIC(10,2),
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (requisicao_id) REFERENCES requisicoes(id) ON DELETE CASCADE,
@@ -121,17 +143,105 @@ INSERT INTO exames (nome, descricao) VALUES
 ('Triglicerídeos', 'Gorduras no sangue. Valores desejáveis: < 150 mg/dL');
 
 -- =====================================================
--- 9. VERIFICAR INSERÇÕES
+-- 9. INSERIR REQUISIÇÕES (COM GLICEMIA E COLESTEROL TOTAL)
+-- =====================================================
+INSERT INTO requisicoes (paciente_id, exame_ids, status) VALUES
+-- Paciente 1: Lucas (18 anos) - Exames 1 (Glicemia) e 2 (Colesterol Total)
+(1, '[1, 2]', 'Concluído'),
+-- Paciente 2: Maria (25 anos) - Exames 1 e 2
+(2, '[1, 2]', 'Concluído'),
+-- Paciente 3: João (35 anos) - Exames 1 e 2
+(3, '[1, 2]', 'Concluído'),
+-- Paciente 4: Ana (42 anos) - Exames 1 e 2
+(4, '[1, 2]', 'Concluído'),
+-- Paciente 5: Carlos (28 anos) - Exames 1 e 2
+(5, '[1, 2]', 'Concluído'),
+-- Paciente 6: Juliana (55 anos) - Exames 1 e 2
+(6, '[1, 2]', 'Concluído'),
+-- Paciente 7: Roberto (31 anos) - Exames 1 e 2
+(7, '[1, 2]', 'Concluído'),
+-- Paciente 8: Fernanda (68 anos) - Exames 1 e 2
+(8, '[1, 2]', 'Concluído'),
+-- Paciente 9: Paulo (45 anos) - Exames 1 e 2
+(9, '[1, 2]', 'Concluído'),
+-- Paciente 10: Mariana (72 anos) - Exames 1 e 2
+(10, '[1, 2]', 'Concluído');
+
+-- =====================================================
+-- 10. INSERIR RESULTADOS (COM VALORES DENTRO E FORA DE REFERÊNCIA)
+-- =====================================================
+
+-- REQUISIÇÃO 1: Lucas (18 anos) - NORMAL
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(1, 1, 85.50, 'Glicemia normal - Valor dentro do esperado'),
+(1, 2, 180.00, 'Colesterol total normal - Sem alterações');
+
+-- REQUISIÇÃO 2: Maria (25 anos) - GLICEMIA ALTA, COLESTEROL NORMAL
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(2, 1, 110.25, 'Glicemia ELEVADA - Acima do normal (ref: 70-99)'),
+(2, 2, 195.00, 'Colesterol total normal');
+
+-- REQUISIÇÃO 3: João (35 anos) - AMBOS ELEVADOS
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(3, 1, 125.80, 'Glicemia MUITO ELEVADA - Possível pré-diabetes'),
+(3, 2, 245.50, 'Colesterol ALTO - Acima de 200 (ref: < 200)');
+
+-- REQUISIÇÃO 4: Ana (42 anos) - GLICEMIA BAIXA, COLESTEROL ELEVADO
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(4, 1, 65.00, 'Glicemia BAIXA - Hipoglicemia leve'),
+(4, 2, 220.75, 'Colesterol ELEVADO - Necessário acompanhamento');
+
+-- REQUISIÇÃO 5: Carlos (28 anos) - NORMAL
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(5, 1, 88.30, 'Glicemia normal - Excelente controle'),
+(5, 2, 170.50, 'Colesterol total ótimo');
+
+-- REQUISIÇÃO 6: Juliana (55 anos) - GLICEMIA NORMAL, COLESTEROL ALTO
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(6, 1, 95.20, 'Glicemia normal para a idade'),
+(6, 2, 260.00, 'Colesterol MUITO ALTO - Recomenda-se dieta e acompanhamento');
+
+-- REQUISIÇÃO 7: Roberto (31 anos) - AMBOS NORMAIS
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(7, 1, 92.15, 'Glicemia normal - Ótimo controle'),
+(7, 2, 185.40, 'Colesterol total normal');
+
+-- REQUISIÇÃO 8: Fernanda (68 anos) - GLICEMIA ALTA, COLESTEROL NORMAL
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(8, 1, 135.60, 'Glicemia ELEVADA - Possível diabetes tipo 2'),
+(8, 2, 200.00, 'Colesterol no limite superior normal');
+
+-- REQUISIÇÃO 9: Paulo (45 anos) - GLICEMIA NORMAL, COLESTEROL ELEVADO
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(9, 1, 98.75, 'Glicemia normal - Dentro dos limites'),
+(9, 2, 235.80, 'Colesterol ELEVADO - Acima de 200');
+
+-- REQUISIÇÃO 10: Mariana (72 anos) - AMBOS ELEVADOS
+INSERT INTO resultados (requisicao_id, exame_id, resultado, observacoes) VALUES
+(10, 1, 140.00, 'Glicemia MUITO ELEVADA - Necessário investigação'),
+(10, 2, 280.50, 'Colesterol MUITO ALTO - Risco cardiovascular elevado');
+
+-- =====================================================
+-- 11. VERIFICAR INSERÇÕES
 -- =====================================================
 SELECT 
-    nome,
-    EXTRACT(YEAR FROM AGE(data_nascimento)) AS idade,
-    data_nascimento,
-    sexo,
-    habitosVida
-FROM pacientes
-ORDER BY idade DESC;
+    p.nome,
+    EXTRACT(YEAR FROM AGE(p.data_nascimento)) AS idade,
+    p.sexo,
+    e.nome AS exame,
+    r.resultado,
+    r.observacoes
+FROM resultados r
+JOIN requisicoes req ON r.requisicao_id = req.id
+JOIN pacientes p ON req.paciente_id = p.id
+JOIN exames e ON r.exame_id = e.id
+ORDER BY p.nome, e.nome;
 
 SELECT 'Pacientes cadastrados:' AS info, COUNT(*) AS total FROM pacientes
 UNION ALL
-SELECT 'Exames cadastrados:' AS info, COUNT(*) AS total FROM exames;
+SELECT 'Exames cadastrados:' AS info, COUNT(*) AS total FROM exames
+UNION ALL
+SELECT 'Requisições criadas:' AS info, COUNT(*) AS total FROM requisicoes
+UNION ALL
+SELECT 'Resultados lançados:' AS info, COUNT(*) AS total FROM resultados;
+

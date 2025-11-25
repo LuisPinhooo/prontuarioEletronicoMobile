@@ -7,7 +7,8 @@
 
 Abra o CMD/Terminal e execute:
 
-    pip install pandas numpy psycopg2-binary scikit-learn matplotlib seaborn -U
+    pip install pandas numpy psycopg2-binary scikit-learn matplotlib seaborn -U   
+    pip install matplotlib seaborn pandas numpy scikit-learn psycopg2-binary -U
 
 
 📋 PASSO 2: EXECUTAR COM SIMULAÇÃO (Recomendado)
