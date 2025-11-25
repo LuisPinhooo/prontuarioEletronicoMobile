@@ -19,7 +19,7 @@ DB_CONFIG = {
     'host': '127.0.0.1',
     'port': 50000,
     'user': 'postgres',
-    'password': '123456',
+    'password': '9090',
     'database': 'prontuario_eletronico'
 }
 
@@ -126,7 +126,35 @@ def generate_graphics(results, output_dir="graficos"):
         os.makedirs(output_dir)
     
     df = results["df_analysis"]
-    cores = ['#e74c3c', '#f39c12', '#2ecc71']
+    cores = ['#c23b22', '#d35400', '#27ae60']  # Vermelho, Laranja, Verde
+    
+    # --- GRÁFICO 0: Scatterplot K-Means (Glicose vs Colesterol) ---
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Plotar pontos por cluster
+    for cluster in df['Cluster'].unique():
+        cluster_data = df[df['Cluster'] == cluster]
+        ax.scatter(cluster_data['glicose'], cluster_data['colesterol'], 
+                   s=150, c=cores[int(cluster)], marker='D', 
+                   edgecolors='black', linewidth=1.5,
+                   label=f'Cluster {int(cluster)}', alpha=0.7)
+    
+    # Plotar centróides
+    centroides = results["centroides"]
+    for idx, (cluster_id, row) in enumerate(centroides.iterrows()):
+        ax.scatter(row['glicose'], row['colesterol'], 
+                   s=400, marker='o', c='black', edgecolors='white', 
+                   linewidth=2, zorder=5, alpha=0.9)
+    
+    ax.set_xlabel('Glicose (mg/dL)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Colesterol Total (mg/dL)', fontsize=12, fontweight='bold')
+    ax.set_title('Análise K-Means: Glicose vs Colesterol', fontsize=14, fontweight='bold', pad=20)
+    ax.legend(fontsize=11, loc='best')
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/00_scatterplot_kmeans.png', dpi=300, bbox_inches='tight')
+    plt.close()
     
     # --- GRÁFICO 1: Distribuição por Cluster ---
     fig, ax = plt.subplots(figsize=(10, 6))
