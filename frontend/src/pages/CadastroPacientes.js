@@ -1,12 +1,18 @@
+// Importar componentes React Native
 import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // Para estado
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import FormField from "../components/Common/FormField/index.js";
 import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+// Importar funções da API
 import * as apiService from "../services/apiService.js";
 
+/**
+ * Página CadastroPacientes - Criar novo paciente ou editar existente
+ */
 export default function CadastroPacientes({ navigation, route }) {
   const [formData, setFormData] = useState({
     nome: "",
@@ -25,6 +31,7 @@ export default function CadastroPacientes({ navigation, route }) {
   const [isEdit, setIsEdit] = useState(false);
   const [pacienteId, setPacienteId] = useState(null);
 
+  // Verificar se é para editar um paciente existente ou criar novo
   useEffect(() => {
     if (route?.params?.isEdit && route?.params?.pacienteData) {
       setIsEdit(true);
@@ -33,12 +40,14 @@ export default function CadastroPacientes({ navigation, route }) {
     }
   }, [route?.params]);
 
+  // Função para atualizar dados do formulário
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  // Função para salvar ou atualizar paciente
   const handleSalvar = async () => {
-    // Validação MÍNIMA - apenas campos obrigatórios não vazios
+    // Valida se campos obrigatórios estão preenchidos
     if (!formData.nome.trim() || !formData.cpf.trim()) {
       alert('Nome e CPF são obrigatórios');
       return;
@@ -59,6 +68,7 @@ export default function CadastroPacientes({ navigation, route }) {
         phabitosVida: formData.habitosVida
       };
 
+      // Se está em modo edição, atualiza; senão, cria novo paciente
       let result;
       if (isEdit) {
         result = await apiService.updatePaciente(pacienteId, pacienteData);
@@ -66,6 +76,7 @@ export default function CadastroPacientes({ navigation, route }) {
         result = await apiService.createPaciente(pacienteData);
       }
 
+      // Se sucesso, limpa formulário e volta à lista
       if (!result.error) {
         alert(result.message);
         setFormData({
@@ -83,6 +94,7 @@ export default function CadastroPacientes({ navigation, route }) {
         });
         navigation.goBack();
       } else {
+        // Se erro, exibe mensagem
         alert(`Erro: ${result.message}`);
       }
     } catch (error) {
@@ -91,6 +103,7 @@ export default function CadastroPacientes({ navigation, route }) {
     }
   };
 
+  // Função para cancelar e voltar à lista
   const handleCancelar = () => {
     navigation.goBack();
   };

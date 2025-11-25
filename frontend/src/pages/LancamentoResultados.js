@@ -1,12 +1,18 @@
+// Importar componentes React Native
 import { StyleSheet, View, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, FlatList } from "react-native";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+// Importar funções da API
 import * as apiService from "../services/apiService.js";
 
+/**
+ * Página LancamentoResultados - Lançar resultados de exames para uma requisição
+ */
 export default function LancamentoResultados({ navigation, route }) {
   const [formData, setFormData] = useState({
     requisicaoId: "",
@@ -41,19 +47,23 @@ export default function LancamentoResultados({ navigation, route }) {
     }, [route?.params?.requisicaoId])
   );
 
+  // Função para buscar requisições, pacientes e exames da API
   const carregarDados = async () => {
     try {
       const reqResult = await apiService.getRequisicoes();
       const pacResult = await apiService.getPacientes();
       const exResult = await apiService.getExames();
 
+      // Se conseguiu buscar requisições, atualiza lista
       if (!reqResult.error) {
         setRequisicoes(reqResult.data);
         setRequisicoesFiltradas(reqResult.data);
       }
+      // Se conseguiu buscar pacientes, atualiza lista
       if (!pacResult.error) {
         setPacientes(pacResult.data);
       }
+      // Se conseguiu buscar exames, atualiza lista
       if (!exResult.error) {
         setTodosExames(exResult.data);
       }
@@ -62,13 +72,16 @@ export default function LancamentoResultados({ navigation, route }) {
     }
   };
 
+  // Função para filtrar requisições por ID na busca
   const handleBusca = (texto) => {
     setBusca(texto);
     setMostraDropdown(true);
     
+    // Se campo de busca está vazio, mostra todas as requisições
     if (texto.trim() === "") {
       setRequisicoesFiltradas(requisicoes);
     } else {
+      // Filtra requisições que contenham o texto
       const filtradas = requisicoes.filter(r => 
         r.id.toString().includes(texto) || 
         r.pacienteId.toString().includes(texto)
@@ -77,6 +90,7 @@ export default function LancamentoResultados({ navigation, route }) {
     }
   };
 
+  // Função para selecionar uma requisição e carregar seus dados
   const handleRequisicaoSelecionada = async (requisicao) => {
     setBusca(`Requisição #${requisicao.id}`);
     setMostraDropdown(false);
@@ -84,14 +98,18 @@ export default function LancamentoResultados({ navigation, route }) {
     try {
       setRequisicaoSelecionada(requisicao);
 
+      // Busca dados do paciente da requisição
       const pacienteDados = pacientes.find(p => p.id == requisicao.pacienteId);
       setPaciente(pacienteDados);
 
+      // Busca exames relacionados à requisição
       const examesRequisicao = todosExames.filter(e => requisicao.exameIds.includes(e.id));
       setExames(examesRequisicao);
 
+      // Busca resultados já lançados para esta requisição
       const resultadosResult = await apiService.getResultadosRequisicao(requisicao.id);
       const resultadosExistentes = {};
+      // Se conseguiu buscar resultados, mapeia para objeto por exameId
       if (!resultadosResult.error && resultadosResult.data) {
         resultadosResult.data.forEach(r => {
           resultadosExistentes[r.exameId] = r;
@@ -108,6 +126,7 @@ export default function LancamentoResultados({ navigation, route }) {
     }
   };
 
+  // Função para atualizar valor de resultado de um exame específico
   const handleResultadoChange = (exameId, campo, valor) => {
     setFormData(prev => ({
       ...prev,
@@ -122,21 +141,26 @@ export default function LancamentoResultados({ navigation, route }) {
     }));
   };
 
+  // Função para salvar todos os resultados
   const handleSalvar = async () => {
+    // Se não selecionou uma requisição, não pode salvar
     if (!formData.requisicaoId) {
       alert('Selecione uma requisição');
       return;
     }
 
+    // Se não preencheu nenhum resultado, não pode salvar
     if (Object.keys(formData.resultados).length === 0) {
       alert('Preencha pelo menos um resultado');
       return;
     }
 
     try {
+      // Itera sobre cada exame da requisição para salvar seus resultados
       for (const exameId in formData.resultados) {
         const resultado = formData.resultados[exameId];
         
+        // Só salva se o resultado tem um valor preenchido
         if (resultado.resultado && resultado.resultado.trim()) {
           const resultadoData = {
             prequisicaoId: parseInt(formData.requisicaoId),
@@ -145,6 +169,7 @@ export default function LancamentoResultados({ navigation, route }) {
             pobservacoes: resultado.observacoes || ''
           };
 
+          // Se já existe resultado, atualiza; senão, cria novo
           let apiResult;
           if (resultado.id) {
             apiResult = await apiService.updateResultado(resultado.id, resultadoData);
@@ -152,6 +177,7 @@ export default function LancamentoResultados({ navigation, route }) {
             apiResult = await apiService.createResultado(resultadoData);
           }
 
+          // Se erro ao salvar resultado, exibe e para
           if (apiResult.error) {
             alert(`Erro ao salvar resultado: ${apiResult.message}`);
             return;
@@ -172,10 +198,12 @@ export default function LancamentoResultados({ navigation, route }) {
     }
   };
 
+  // Função para cancelar e voltar à página anterior
   const handleCancelar = () => {
     navigation.goBack();
   };
 
+  // Função para renderizar cada requisição no dropdown
   const renderRequisicaoItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.dropdownItem}
@@ -210,6 +238,7 @@ export default function LancamentoResultados({ navigation, route }) {
               placeholderTextColor="#999"
             />
             
+            {/* Se tem requisições filtradas, mostra dropdown */}
             {mostraDropdown && requisicoesFiltradas.length > 0 && (
               <View style={styles.dropdownContainer}>
                 <FlatList
@@ -222,6 +251,7 @@ export default function LancamentoResultados({ navigation, route }) {
             )}
           </View>
 
+          {/* Se selecionou uma requisição e tem paciente, mostra dados */}
           {requisicaoSelecionada && paciente && (
             <>
               <Text style={styles.sectionTitle}>👤 Dados do Paciente</Text>

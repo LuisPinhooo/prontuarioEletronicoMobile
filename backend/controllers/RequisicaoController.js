@@ -1,7 +1,9 @@
+// Importar conexão com banco de dados
 const pool = require('../config/database');
+// Importar funções para converter snake_case para camelCase
 const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-// LISTAR TODAS AS REQUISIÇÕES
+// Função para listar todas as requisições de exames
 exports.listarTodos = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM requisicoes ORDER BY id DESC');
@@ -20,12 +22,13 @@ exports.listarTodos = async (req, res) => {
   }
 };
 
-// BUSCAR REQUISIÇÃO POR ID
+// Função para buscar uma requisição específica pelo ID
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM requisicoes WHERE id = $1', [id]);
 
+    // Se requisição não foi encontrada, retorna erro 404
     if (result.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -46,7 +49,7 @@ exports.buscarPorId = async (req, res) => {
   }
 };
 
-// BUSCAR REQUISIÇÕES POR PACIENTE
+// Função para buscar todas as requisições de um paciente específico
 exports.buscarPorPaciente = async (req, res) => {
   try {
     const { pacienteId } = req.params;
@@ -66,11 +69,12 @@ exports.buscarPorPaciente = async (req, res) => {
   }
 };
 
-// CRIAR NOVA REQUISIÇÃO
+// Função para criar uma nova requisição de exames para um paciente
 exports.criar = async (req, res) => {
   try {
     const { ppacienteId, pexameIds } = req.body;
 
+    // Se paciente ou exames não foram fornecidos, não pode criar requisição
     if (!ppacienteId || !pexameIds || pexameIds.length === 0) {
       return res.status(400).json({
         error: true,
@@ -78,8 +82,8 @@ exports.criar = async (req, res) => {
       });
     }
 
+    // Verificar se paciente existe antes de criar requisição
     const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [ppacienteId]);
-    
     if (pacienteExiste.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -106,12 +110,13 @@ exports.criar = async (req, res) => {
   }
 };
 
-// ATUALIZAR REQUISIÇÃO
+// Função para atualizar uma requisição existente
 exports.atualizar = async (req, res) => {
   try {
     const { id } = req.params;
     const { ppacienteId, pexameIds, pstatus } = req.body;
 
+    // Verificar se requisição existe antes de atualizar
     const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [id]);
     if (requisicaoExiste.rowCount === 0) {
       return res.status(404).json({
@@ -139,11 +144,12 @@ exports.atualizar = async (req, res) => {
   }
 };
 
-// DELETAR REQUISIÇÃO
+// Função para deletar uma requisição
 exports.deletar = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verificar se requisição existe antes de deletar
     const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [id]);
     if (requisicaoExiste.rowCount === 0) {
       return res.status(404).json({

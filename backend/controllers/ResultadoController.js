@@ -1,7 +1,9 @@
+// Importar conexão com banco de dados
 const pool = require('../config/database');
+// Importar funções para converter snake_case para camelCase
 const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-// LISTAR TODOS OS RESULTADOS
+// Função para listar todos os resultados de exames
 exports.listarTodos = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM resultados ORDER BY id DESC');
@@ -20,12 +22,13 @@ exports.listarTodos = async (req, res) => {
   }
 };
 
-// BUSCAR RESULTADO POR ID
+// Função para buscar um resultado específico pelo ID
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM resultados WHERE id = $1', [id]);
 
+    // Se resultado não foi encontrado, retorna erro 404
     if (result.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -46,7 +49,7 @@ exports.buscarPorId = async (req, res) => {
   }
 };
 
-// BUSCAR RESULTADOS POR REQUISIÇÃO
+// Função para buscar todos os resultados de uma requisição específica
 exports.buscarPorRequisicao = async (req, res) => {
   try {
     const { requisicaoId } = req.params;
@@ -66,11 +69,12 @@ exports.buscarPorRequisicao = async (req, res) => {
   }
 };
 
-// CRIAR NOVO RESULTADO
+// Função para criar um novo resultado de exame
 exports.criar = async (req, res) => {
   try {
     const { prequisicaoId, pexameId, presultado, pobservacoes } = req.body;
 
+    // Se requisição ou exame não foram fornecidos, não pode criar resultado
     if (!prequisicaoId || !pexameId) {
       return res.status(400).json({
         error: true,
@@ -78,8 +82,8 @@ exports.criar = async (req, res) => {
       });
     }
 
+    // Verificar se requisição existe
     const requisicaoExiste = await pool.query('SELECT id FROM requisicoes WHERE id = $1', [prequisicaoId]);
-    
     if (requisicaoExiste.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -87,8 +91,8 @@ exports.criar = async (req, res) => {
       });
     }
 
+    // Verificar se exame existe
     const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [pexameId]);
-    
     if (exameExiste.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -115,12 +119,13 @@ exports.criar = async (req, res) => {
   }
 };
 
-// ATUALIZAR RESULTADO
+// Função para atualizar um resultado existente
 exports.atualizar = async (req, res) => {
   try {
     const { id } = req.params;
     const { presultado, pobservacoes } = req.body;
 
+    // Verificar se resultado existe antes de atualizar
     const resultadoExiste = await pool.query('SELECT id FROM resultados WHERE id = $1', [id]);
     if (resultadoExiste.rowCount === 0) {
       return res.status(404).json({
@@ -148,11 +153,12 @@ exports.atualizar = async (req, res) => {
   }
 };
 
-// DELETAR RESULTADO
+// Função para deletar um resultado
 exports.deletar = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verificar se resultado existe antes de deletar
     const resultadoExiste = await pool.query('SELECT id FROM resultados WHERE id = $1', [id]);
     if (resultadoExiste.rowCount === 0) {
       return res.status(404).json({

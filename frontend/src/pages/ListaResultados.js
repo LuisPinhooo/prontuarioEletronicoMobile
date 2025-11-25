@@ -1,10 +1,16 @@
+// Importar componentes React Native
 import { StyleSheet, View, SafeAreaView, Text, TouchableOpacity, FlatList, TextInput } from "react-native";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
+// Importar funções da API
 import * as apiService from "../services/apiService.js";
 
+/**
+ * Página ListaResultados - Lista requisições para seleção e edição de resultados
+ */
 export default function ListaResultados({ navigation }) {
   const [requisicoes, setRequisicoes] = useState([]);
   const [requisicoesFiltradas, setRequisicoesFiltradas] = useState([]);
@@ -17,15 +23,18 @@ export default function ListaResultados({ navigation }) {
     }, [])
   );
 
+  // Função para buscar requisições e pacientes da API
   const carregarDados = async () => {
     try {
       const reqResult = await apiService.getRequisicoes();
       const pacResult = await apiService.getPacientes();
       
+      // Se conseguiu buscar requisições, atualiza lista
       if (!reqResult.error) {
         setRequisicoes(reqResult.data);
         setRequisicoesFiltradas(reqResult.data);
       }
+      // Se conseguiu buscar pacientes, atualiza lista
       if (!pacResult.error) {
         setPacientes(pacResult.data);
       }
@@ -35,12 +44,15 @@ export default function ListaResultados({ navigation }) {
     }
   };
 
+  // Função para filtrar requisições por ID
   const handleBusca = (texto) => {
     setBusca(texto);
     
+    // Se campo de busca está vazio, mostra todas as requisições
     if (texto.trim() === "") {
       setRequisicoesFiltradas(requisicoes);
     } else {
+      // Filtra requisições que contenham o texto
       const filtradas = requisicoes.filter(r => 
         r.id.toString().includes(texto) || 
         r.pacienteId.toString().includes(texto)
@@ -49,21 +61,26 @@ export default function ListaResultados({ navigation }) {
     }
   };
 
+  // Função para voltar à página anterior
   const handleBack = () => {
     navigation.goBack();
   };
 
+  // Função para navegar para edição de resultados
   const handleEditarResultados = (requisicao) => {
     navigation.navigate("LancamentoResultados", { 
       requisicaoId: requisicao.id  // ← Passar só o ID
     });
   };
 
+  // Função para obter o nome do paciente pelo ID
   const getPacienteNome = (pacienteId) => {
+    // Busca paciente na lista; se não encontra, retorna 'Paciente desconhecido'
     const paciente = pacientes.find(p => p.id === pacienteId);
     return paciente ? paciente.nome : 'Paciente desconhecido';
   };
 
+  // Função para renderizar cada requisição na lista
   const renderRequisicao = ({ item }) => (
     <TouchableOpacity 
       style={styles.requisicaoCard}

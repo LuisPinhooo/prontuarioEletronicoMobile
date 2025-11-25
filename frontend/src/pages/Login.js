@@ -1,39 +1,52 @@
+// Importar componentes React Native
 import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import { useState } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from "react"; // Para gerenciar estado
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Para armazenar token localmente
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 import FormField from "../components/Common/FormField/index.js";
-import * as apiService from "../services/apiService.js"; // 1. Importar o apiService
+// Importar funções da API
+import * as apiService from "../services/apiService.js";
 
+/**
+ * Página de Login - Autentica o usuário na aplicação
+ */
 export default function Login({ navigation }) {
-  const [email, setEmail] = useState("admin@local"); // Valor padrão para facilitar o teste
-  const [password, setPassword] = useState("123456"); // Valor padrão para facilitar o teste
-  const [loading, setLoading] = useState(false);
+  // Estado para armazenar dados do formulário
+  const [email, setEmail] = useState("admin@local"); // Email padrão para testes
+  const [password, setPassword] = useState("123456"); // Senha padrão para testes
+  const [loading, setLoading] = useState(false); // Mostrar loading durante requisição
 
+  /**
+   * Função para autenticar o usuário
+   * Envia email e senha para a API e armazena o token se for bem-sucedido
+   */
   const handleLogin = async () => {
+    // Se email ou senha não foram preenchidos, exibe erro
     if (!email || !password) {
       Alert.alert("Erro", "Email e senha são obrigatórios");
       return;
     }
     
     try {
-      setLoading(true);
+      setLoading(true); // Mostrar indicador de carregamento
       
-      // 2. Chamar a API de login
+      // Chamar função de login da API
       const result = await apiService.login(email, password);
       console.log("Resposta da API de Login:", result);
 
-      // 3. Verificar se a API retornou um erro
+      // Se a API retornou erro, exibe mensagem de erro
       if (result.error) {
         Alert.alert('Erro', result.message || 'Credenciais inválidas');
         return;
       }
 
-      // 4. Salvar o token REAL e os dados do usuário
+      // Armazenar token JWT localmente para requisições futuras
       await AsyncStorage.setItem('authToken', result.token);
+      // Armazenar dados do usuário localmente
       await AsyncStorage.setItem('user', JSON.stringify(result.user));
       
-      // 5. Navegar para a Home
+      // Navegar para a página Home (substituir stack de login)
       navigation.replace('Home');
 
     } catch (err) {

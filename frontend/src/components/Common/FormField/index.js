@@ -1,5 +1,10 @@
+// Importar componentes React Native
 import { StyleSheet, View, Text, TextInput } from "react-native";
 
+/**
+ * Componente FormField - Campo de entrada de texto customizado
+ * Usado em formulários de cadastro e edição
+ */
 export default function FormField({ 
   label, 
   value, 
@@ -12,7 +17,9 @@ export default function FormField({
 }) {
   return (
     <View style={styles.container}>
+      {/* Label do campo */}
       <Text style={styles.label}>{label}</Text>
+      {/* Input de texto */}
       <TextInput
         style={[styles.input, multiline && styles.inputMultiline]}
         placeholder={placeholder}

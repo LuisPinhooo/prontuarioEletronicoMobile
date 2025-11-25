@@ -1,6 +1,12 @@
+// Importar componentes React Native
 import { StyleSheet, View, TouchableOpacity, Text } from "react-native";
+// Importar biblioteca de ícones
 import { Ionicons } from "@expo/vector-icons";
 
+/**
+ * Componente ActionButtons - Botões de ação (Salvar e Cancelar)
+ * Usado em formulários para confirmar ou descartar ações
+ */
 export default function ActionButtons({ 
   onSave, 
   onCancel, 
@@ -10,11 +16,13 @@ export default function ActionButtons({
 }) {
   return (
     <View style={styles.container}>
+      {/* Botão Salvar */}
       <TouchableOpacity style={styles.saveButton} onPress={onSave}>
         <Ionicons name={saveIcon} size={24} color="#fff" />
         <Text style={styles.saveButtonText}>{saveText}</Text>
       </TouchableOpacity>
 
+      {/* Botão Cancelar */}
       <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelButtonText}>{cancelText}</Text>
       </TouchableOpacity>

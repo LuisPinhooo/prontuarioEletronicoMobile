@@ -1,9 +1,12 @@
+// Importar bibliotecas React e React Native
 import React from "react";
 import { Text } from "react-native";
+// Importar bibliotecas de navegação
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 
+// Importar páginas da aplicação
 import Login from "./src/pages/Login";
 import Home from "./src/pages/Home";
 import Sobre from "./src/pages/Sobre";
@@ -20,7 +23,10 @@ import ListaResultados from "./src/pages/ListaResultados";
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-// Home Stack (com todos os menus internos)
+/**
+ * Stack navigator com todas as páginas principais da aplicação
+ * Responsável pela navegação entre Pacientes, Exames, Requisições e Resultados
+ */
 function HomeStack() {
   return (
     <Stack.Navigator
@@ -42,7 +48,8 @@ function HomeStack() {
   );
 }
 
-// Drawer com Home e Sobre
+// Drawer navigator com menu lateral
+// Permite retornar à home ou acessar a página Sobre
 function HomeDrawer() {
   return (
     <Drawer.Navigator
@@ -76,17 +83,20 @@ function HomeDrawer() {
   );
 }
 
-// App principal
+// Componente principal da aplicação
+// Define a navegação geral entre Login e Home
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="Login" // Começar na página de login
         screenOptions={{
-          headerShown: false,
+          headerShown: false, // Ocultar header padrão
         }}
       >
+        {/* Tela de login - primeira tela da aplicação */}
         <Stack.Screen name="Login" component={Login} />
+        {/* Menu principal com drawer */}
         <Stack.Screen name="Home" component={HomeDrawer} />
       </Stack.Navigator>
     </NavigationContainer>

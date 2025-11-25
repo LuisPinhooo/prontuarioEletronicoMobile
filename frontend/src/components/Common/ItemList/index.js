@@ -1,20 +1,30 @@
+// Importar componentes React Native
 import { StyleSheet, View, FlatList, TouchableOpacity, Text } from "react-native";
+// Importar biblioteca de ícones
 import { Ionicons } from "@expo/vector-icons";
 
+/**
+ * Componente ItemList - Lista de itens com opção de editar e deletar
+ * Usado para exibir listas de pacientes, exames, requisições e resultados
+ */
 export default function ItemList({ data, onItemPress, onDelete, renderTitle, renderSubtitle }) {
   const renderItem = ({ item }) => (
     <View style={styles.listItem}>
+      {/* Área clicável para editar item */}
       <TouchableOpacity 
         style={styles.itemContent}
         onPress={() => onItemPress && onItemPress(item)}
       >
         <View style={styles.itemInfo}>
+          {/* Título principal do item */}
           <Text style={styles.itemTitle}>{renderTitle(item)}</Text>
+          {/* Subtítulo/descrição do item */}
           <Text style={styles.itemSubtitle}>{renderSubtitle(item)}</Text>
         </View>
         <Ionicons name="chevron-forward" size={24} color="#2ecc71" />
       </TouchableOpacity>
       
+      {/* Botão deletar (opcional) */}
       {onDelete && (
         <TouchableOpacity 
           style={styles.deleteButton}

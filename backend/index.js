@@ -1,9 +1,10 @@
+// Configuração de variáveis de ambiente
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
-// Importar rotas
+// Importar todas as rotas da aplicação
 const authRoutes = require('./routes/auth');
 const authMiddleware = require('./middlewares/auth');
 const pacientesRoutes = require('./routes/pacientes');
@@ -14,12 +15,12 @@ const resultadosRoutes = require('./routes/resultados');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Configurar middlewares de segurança e parsing
+app.use(cors()); // Permitir requisições de diferentes origens
+app.use(bodyParser.json()); // Parsear JSON
+app.use(bodyParser.urlencoded({ extended: true })); // Parsear URL encoded
 
-// Rota de teste
+// Rota de teste para verificar se API está funcionando
 app.get("/", (req, res) => {
     res.json({ 
         status: "Ok", 
@@ -28,14 +29,14 @@ app.get("/", (req, res) => {
     });
 });
 
-// Rotas de Autenticação (NÃO PROTEGIDAS - não precisa de token)
+// Rotas de Autenticação (públicas - não precisam de token)
 app.use('/auth', authRoutes);
 
-// Rotas Protegidas (PRECISAM DE TOKEN)
-app.use(authMiddleware, pacientesRoutes);
-app.use(authMiddleware, examesRoutes);
-app.use(authMiddleware, requisicoeRoutes);
-app.use(authMiddleware, resultadosRoutes);
+// Rotas protegidas que requerem token JWT válido
+app.use(authMiddleware, pacientesRoutes); // Gerenciar pacientes
+app.use(authMiddleware, examesRoutes); // Gerenciar exames
+app.use(authMiddleware, requisicoeRoutes); // Gerenciar requisições
+app.use(authMiddleware, resultadosRoutes); // Gerenciar resultados
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {

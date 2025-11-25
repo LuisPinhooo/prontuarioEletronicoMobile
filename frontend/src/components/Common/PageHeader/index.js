@@ -1,16 +1,25 @@
+// Importar componentes React Native
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+// Importar biblioteca de ícones
 import { Ionicons } from "@expo/vector-icons";
 
+/**
+ * Componente PageHeader - Cabeçalho de página com botão voltar e botão adicionar
+ * Exibido no topo de cada página principal
+ */
 export default function PageHeader({ title, onBack, onAdd, addButtonText }) {
   return (
     <View style={styles.container}>
+      {/* Row com botão voltar e título */}
       <View style={styles.headerRow}>
+        {/* Botão para voltar à página anterior */}
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={24} color="#2ecc71" />
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
       </View>
       
+      {/* Botão adicionar (opcional) */}
       {onAdd && (
         <TouchableOpacity style={styles.addButton} onPress={onAdd}>
           <Ionicons name="add-circle" size={24} color="#fff" />

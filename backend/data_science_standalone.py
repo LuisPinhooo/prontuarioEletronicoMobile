@@ -39,6 +39,7 @@ SQL_QUERY = """
 """
 
 def fetch_data():
+    """Busca dados dos pacientes no banco PostgreSQL"""
     conn = None
     try:
         conn = psycopg2.connect(**DB_CONFIG)
@@ -48,43 +49,46 @@ def fetch_data():
         print(f"❌ Erro: {error}")
         return pd.DataFrame()
     finally:
+        # Fecha conexão se foi estabelecida com sucesso
         if conn:
             conn.close()
 
 def run_kmeans_analysis(df, n_clusters=3):
-    """Executa análise K-Means com K=3 clusters"""
+    """Agrupa pacientes em 3 clusters de risco usando K-Means"""
     
+    # Valida se há dados para análise
     if df.empty:
         return {"status": "error", "message": "Sem dados"}
     
-    # Remove NaN
+    # Remove linhas com valores ausentes
     df_clean = df.dropna(subset=['glicose', 'colesterol'])
     
+    # Verifica se há dados suficientes para formar clusters
     if len(df_clean) < n_clusters:
         return {"status": "error", "message": "Dados insuficientes"}
     
-    # Features para clustering
+    # Normaliza dados (idade, glicose, colesterol)
     X = df_clean[['idade', 'glicose', 'colesterol']].values
     X_scaled = StandardScaler().fit_transform(X)
     
-    # K-Means com K=3
+    # Aplica K-Means para segmentar pacientes
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     df_clean['Cluster'] = kmeans.fit_predict(X_scaled)
     
-    # Análise de clusters
+    # Calcula média de cada variável por cluster
     centroides = df_clean.groupby('Cluster')[['idade', 'glicose', 'colesterol']].mean()
     
-    # Interpretações dos clusters
+    # Classifica clusters por nível de risco
     interpretacoes = {
         0: "Alto Risco Metabólico-Cardiovascular",
         1: "Risco Intermediário/Monitoramento",
         2: "Baixo Risco (Saudável)"
     }
     
-    # Ordenar por glicose (descendente) para consistência
+    # Ordena por glicose para consistência
     centroides = centroides.sort_values('glicose', ascending=False)
     
-    # Tabela de centroides
+    # Formata dados dos clusters para saída
     tabela_centroides = []
     for idx, (cluster_id, row) in enumerate(centroides.iterrows()):
         tabela_centroides.append({
@@ -96,10 +100,11 @@ def run_kmeans_analysis(df, n_clusters=3):
             "Quantidade Pacientes": int(len(df_clean[df_clean['Cluster'] == cluster_id]))
         })
     
-    # Estatísticas da idade
+    # Calcula estatísticas descritivas da idade
     idade_stats = {
         'Média': round(df_clean['idade'].mean(), 2),
         'Mediana': round(df_clean['idade'].median(), 0),
+        # Se moda existe, converte para int; caso contrário, retorna 'N/A'
         'Moda': int(df_clean['idade'].mode()[0]) if not df_clean['idade'].mode().empty else 'N/A',
         'Desvio Padrão': round(df_clean['idade'].std(), 2),
         'Variância': round(df_clean['idade'].var(), 2),
@@ -117,11 +122,13 @@ def run_kmeans_analysis(df, n_clusters=3):
     }
 
 def generate_graphics(results, output_dir="graficos"):
-    """Gera gráficos conforme documentação do projeto"""
+    """Gera 3 gráficos: scatterplot, pizza e tabela de clusters"""
     
+    # Se análise não foi bem-sucedida, não gera gráficos
     if results["status"] != "success":
         return
     
+    # Cria diretório se não existir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
@@ -131,7 +138,7 @@ def generate_graphics(results, output_dir="graficos"):
     # --- GRÁFICO 0: Scatterplot K-Means (Glicose vs Colesterol) ---
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    # Plotar pontos por cluster
+    # Plota pontos de cada cluster
     for cluster in df['Cluster'].unique():
         cluster_data = df[df['Cluster'] == cluster]
         ax.scatter(cluster_data['glicose'], cluster_data['colesterol'], 
@@ -139,7 +146,7 @@ def generate_graphics(results, output_dir="graficos"):
                    edgecolors='black', linewidth=1.5,
                    label=f'Cluster {int(cluster)}', alpha=0.7)
     
-    # Plotar centróides
+    # Marca os centroides dos clusters
     centroides = results["centroides"]
     for idx, (cluster_id, row) in enumerate(centroides.iterrows()):
         ax.scatter(row['glicose'], row['colesterol'], 
@@ -156,12 +163,13 @@ def generate_graphics(results, output_dir="graficos"):
     plt.savefig(f'{output_dir}/00_scatterplot_kmeans.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # --- GRÁFICO 1: Distribuição por Cluster ---
+    # --- GRÁFICO 1: Gráfico de pizza com distribuição dos clusters ---
     fig, ax = plt.subplots(figsize=(10, 6))
     
     distribuicao = df['Cluster'].value_counts().sort_index()
     labels_pizza = [f'Cluster {c}\n({int(distribuicao[c])} pacientes)' for c in distribuicao.index]
     
+    # Plota pizza com percentuais
     wedges, texts, autotexts = ax.pie(distribuicao, labels=labels_pizza, colors=cores,
                                         autopct='%1.1f%%', startangle=90,
                                         textprops={'fontsize': 10, 'fontweight': 'bold'})
@@ -176,13 +184,14 @@ def generate_graphics(results, output_dir="graficos"):
     plt.savefig(f'{output_dir}/01_distribuicao_clusters.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # --- GRÁFICO 2: Tabela de Centroides ---
+    # --- GRÁFICO 2: Tabela com resumo dos centroides ---
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.axis('tight')
     ax.axis('off')
     
     centroid_data = results["tabela_centroides"]
     
+    # Formata dados da tabela
     tabela_dados = []
     for c in centroid_data:
         tabela_dados.append([
@@ -206,9 +215,11 @@ def generate_graphics(results, output_dir="graficos"):
     for i in range(len(tabela_dados) + 1):
         for j in range(6):
             cell = table_centroides[(i, j)]
+            # Primeira linha é cabeçalho (cinza escuro)
             if i == 0:
                 cell.set_facecolor('#34495e')
                 cell.set_text_props(weight='bold', color='white', fontsize=11)
+            # Demais linhas usam cores dos clusters
             else:
                 cell.set_facecolor(cores[i-1])
                 cell.set_text_props(weight='bold', color='white', fontsize=10)
@@ -222,6 +233,7 @@ def generate_graphics(results, output_dir="graficos"):
 if __name__ == '__main__':
     print("\n🔄 Processando análise...\n")
     
+    # Se argumento --simulate for passado, usa dados simulados; caso contrário, busca do banco
     if len(sys.argv) > 1 and sys.argv[1].lower() == '--simulate':
         np.random.seed(42)
         df_simulado = pd.DataFrame({
@@ -236,6 +248,7 @@ if __name__ == '__main__':
         df_real = fetch_data()
         results = run_kmeans_analysis(df_real)
     
+    # Se análise foi bem-sucedida, exibe resultados e gera gráficos
     if results["status"] == "success":
         # Exibir medidas estatísticas
         print("="*60)
@@ -263,5 +276,6 @@ if __name__ == '__main__':
             print("✅ JSON salvo em: ds_output_final.json")
         except Exception as e:
             print(f"❌ Erro: {e}")
+    # Se análise falhar, exibe mensagem de erro
     else:
         print(f"❌ Erro na análise: {results.get('message', 'Desconhecido')}")

@@ -1,6 +1,11 @@
+// Importar componentes React Native
 import { StyleSheet, View, Text, SafeAreaView, ScrollView } from "react-native";
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 
+/**
+ * Página Sobre - Informações gerais sobre o projeto
+ */
 export default function Sobre({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1 }}>

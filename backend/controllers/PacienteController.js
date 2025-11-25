@@ -1,7 +1,9 @@
+// Importar conexão com banco de dados
 const pool = require('../config/database');
+// Importar funções para converter snake_case para camelCase
 const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-// LISTAR TODOS OS PACIENTES
+// Função para listar todos os pacientes cadastrados
 exports.listarTodos = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM pacientes ORDER BY id DESC');
@@ -20,12 +22,13 @@ exports.listarTodos = async (req, res) => {
   }
 };
 
-// BUSCAR PACIENTE POR ID
+// Função para buscar um paciente específico pelo ID
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM pacientes WHERE id = $1', [id]);
 
+    // Se paciente não foi encontrado no banco, retorna erro 404
     if (result.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -46,7 +49,7 @@ exports.buscarPorId = async (req, res) => {
   }
 };
 
-// CRIAR NOVO PACIENTE
+// Função para criar novo paciente na base de dados
 exports.criar = async (req, res) => {
   try {
     const {
@@ -63,6 +66,7 @@ exports.criar = async (req, res) => {
       phabitosVida
     } = req.body;
 
+    // Se nome ou CPF não foram fornecidos, não é possível criar o paciente
     if (!pnome || !pcpf) {
       return res.status(400).json({
         error: true,
@@ -70,6 +74,7 @@ exports.criar = async (req, res) => {
       });
     }
 
+    // Verificar se CPF já está cadastrado (evita duplicatas)
     const cpfExiste = await pool.query('SELECT id FROM pacientes WHERE cpf = $1', [pcpf]);
     if (cpfExiste.rowCount > 0) {
       return res.status(400).json({
@@ -100,7 +105,7 @@ exports.criar = async (req, res) => {
   }
 };
 
-// ATUALIZAR PACIENTE
+// Função para atualizar dados de um paciente existente
 exports.atualizar = async (req, res) => {
   try {
     const { id } = req.params;
@@ -118,6 +123,7 @@ exports.atualizar = async (req, res) => {
       phabitosVida
     } = req.body;
 
+    // Verificar se paciente existe antes de atualizar
     const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [id]);
     if (pacienteExiste.rowCount === 0) {
       return res.status(404).json({
@@ -126,6 +132,7 @@ exports.atualizar = async (req, res) => {
       });
     }
 
+    // Verificar se novo CPF já está cadastrado para outro paciente
     const cpfExiste = await pool.query('SELECT id FROM pacientes WHERE cpf = $1 AND id != $2', [pcpf, id]);
     if (cpfExiste.rowCount > 0) {
       return res.status(400).json({
@@ -158,11 +165,12 @@ exports.atualizar = async (req, res) => {
   }
 };
 
-// DELETAR PACIENTE
+// Função para deletar um paciente da base de dados
 exports.deletar = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verificar se paciente existe antes de deletar
     const pacienteExiste = await pool.query('SELECT id FROM pacientes WHERE id = $1', [id]);
     if (pacienteExiste.rowCount === 0) {
       return res.status(404).json({

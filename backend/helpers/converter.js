@@ -1,12 +1,14 @@
 /**
- * Converte snake_case para camelCase
+ * Converte strings de snake_case para camelCase
+ * Exemplo: "data_nascimento" → "dataNascimento"
  */
 function toCamelCase(str) {
     return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
   }
   
   /**
-   * Converte objeto snake_case para camelCase
+   * Converte um objeto com chaves em snake_case para camelCase
+   * Exemplo: {data_nascimento: "1990-01-01"} → {dataNascimento: "1990-01-01"}
    */
   function convertRowToCamelCase(row) {
     const converted = {};
@@ -14,7 +16,7 @@ function toCamelCase(str) {
     for (const key in row) {
       const camelKey = toCamelCase(key);
       
-      // Se for exame_ids, converter para array
+      // Converter "exame_ids" de string JSON para array
       if (key === 'exame_ids') {
         converted[camelKey] = JSON.parse(row[key]);
       } else {
@@ -26,7 +28,8 @@ function toCamelCase(str) {
   }
   
   /**
-   * Converte array de objetos snake_case para camelCase
+   * Converte array de objetos com snake_case para camelCase
+   * Aplica convertRowToCamelCase em cada objeto do array
    */
   function convertRowsToCamelCase(rows) {
     return rows.map(row => convertRowToCamelCase(row));

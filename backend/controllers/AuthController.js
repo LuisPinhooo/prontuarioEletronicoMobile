@@ -1,9 +1,11 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+// Importar bibliotecas para autenticação
+const jwt = require('jsonwebtoken'); // Para gerar tokens JWT
+const bcrypt = require('bcryptjs'); // Para fazer hash seguro de senhas
 
+// Chave secreta para assinar tokens JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'meu-segredo-super-seguro-para-prontuario';
 
-// Armazenamento temporário de usuários
+// Array temporário armazenando usuários (em produção usar banco de dados)
 let users = [
   {
     id: 1,
@@ -14,11 +16,13 @@ let users = [
 ];
 let nextUserId = 2;
 
-// LOGIN
+// Função para fazer login - autentica usuário e retorna token JWT
 exports.login = async (req, res) => {
   try {
+    // Extrair email e senha do corpo da requisição
     const { email, password } = req.body;
 
+    // Se email ou senha não foram fornecidos, retorna erro
     if (!email || !password) {
       return res.status(400).json({
         error: true,
@@ -26,8 +30,9 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Buscar usuário
+    // Buscar usuário no array pelo email
     const user = users.find(u => u.email === email);
+    // Se usuário não existe, retorna erro de credenciais inválidas
     if (!user) {
       return res.status(401).json({
         error: true,
@@ -35,8 +40,9 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Verificar senha
+    // Comparar senha fornecida com hash armazenado no banco
     const senhaValida = await bcrypt.compare(password, user.password);
+    // Se senha está incorreta, retorna erro
     if (!senhaValida) {
       return res.status(401).json({
         error: true,
@@ -44,7 +50,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Gerar token JWT
+    // Gerar token JWT com dados do usuário (válido por 24 horas)
     const token = jwt.sign(
       { 
         id: user.id, 
@@ -77,13 +83,15 @@ exports.login = async (req, res) => {
   }
 };
 
-// REGISTRO (FUTURO - criar tela de cadastro no frontend)
-// Por enquanto, criar usuários via Postman: POST /auth/register
+// Função para registrar novo usuário na aplicação
+// Pode ser usado via Postman: POST /auth/register
 // Body: { "name": "...", "email": "...", "password": "..." }
 exports.register = async (req, res) => {
   try {
+    // Extrair dados de cadastro do corpo da requisição
     const { name, email, password } = req.body;
 
+    // Se algum campo obrigatório está vazio, retorna erro
     if (!name || !email || !password) {
       return res.status(400).json({
         error: true,
@@ -91,7 +99,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Verificar se email já existe
+    // Verificar se email já está cadastrado na base de dados
     const emailExiste = users.find(u => u.email === email);
     if (emailExiste) {
       return res.status(400).json({
@@ -100,10 +108,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Hash da senha
+    // Criar hash seguro da senha (custo 10)
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Criar usuário
+    // Criar novo objeto de usuário
     const novoUsuario = {
       id: nextUserId++,
       name: name,
@@ -134,9 +142,10 @@ exports.register = async (req, res) => {
   }
 };
 
-// VERIFICAR TOKEN (útil para checar se usuário está logado)
+// Função para verificar se um token JWT é válido
+// Middleware já validou o token, apenas retorna os dados
 exports.verifyToken = (req, res) => {
-  // Se chegou aqui, o middleware já validou o token
+  // Se chegou aqui, o middleware auth já validou o token com sucesso
   res.status(200).json({
     error: false,
     message: 'Token válido',

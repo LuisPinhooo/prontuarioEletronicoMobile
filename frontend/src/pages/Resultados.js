@@ -1,9 +1,15 @@
+// Importar componentes React Native
 import { StyleSheet, View, Text, SafeAreaView } from "react-native";
+// Importar componentes customizados
 import MenuItem from "../components/Menu/index.js";
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 
+/**
+ * Página Resultados - Menu para lançar ou editar resultados de exames
+ */
 export default function Resultados({ navigation }) {
+  // Função para voltar à página anterior
   const handleBack = () => {
     navigation.goBack();
   };
@@ -27,6 +33,7 @@ export default function Resultados({ navigation }) {
               color="#000000"
               onPress={() => navigation.navigate("LancamentoResultados")}
             />
+            {/* Botão para editar resultado lançado */}
             <MenuItem
               iconName="create-outline"
               text="Editar Resultado"

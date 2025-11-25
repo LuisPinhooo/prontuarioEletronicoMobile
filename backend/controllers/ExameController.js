@@ -1,7 +1,9 @@
+// Importar conexão com banco de dados
 const pool = require('../config/database');
+// Importar funções para converter snake_case para camelCase
 const { convertRowToCamelCase, convertRowsToCamelCase } = require('../helpers/converter');
 
-// LISTAR TODOS OS EXAMES
+// Função para listar todos os exames cadastrados
 exports.listarTodos = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM exames ORDER BY id DESC');
@@ -20,12 +22,13 @@ exports.listarTodos = async (req, res) => {
   }
 };
 
-// BUSCAR EXAME POR ID
+// Função para buscar um exame específico pelo ID
 exports.buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM exames WHERE id = $1', [id]);
 
+    // Se exame não foi encontrado, retorna erro 404
     if (result.rowCount === 0) {
       return res.status(404).json({
         error: true,
@@ -46,11 +49,12 @@ exports.buscarPorId = async (req, res) => {
   }
 };
 
-// CRIAR NOVO EXAME
+// Função para criar novo exame na base de dados
 exports.criar = async (req, res) => {
   try {
     const { pnome, pdescricao } = req.body;
 
+    // Se nome do exame não foi fornecido, não é possível criar
     if (!pnome) {
       return res.status(400).json({
         error: true,
@@ -77,12 +81,13 @@ exports.criar = async (req, res) => {
   }
 };
 
-// ATUALIZAR EXAME
+// Função para atualizar dados de um exame existente
 exports.atualizar = async (req, res) => {
   try {
     const { id } = req.params;
     const { pnome, pdescricao } = req.body;
 
+    // Verificar se exame existe antes de atualizar
     const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [id]);
     if (exameExiste.rowCount === 0) {
       return res.status(404).json({
@@ -110,11 +115,12 @@ exports.atualizar = async (req, res) => {
   }
 };
 
-// DELETAR EXAME
+// Função para deletar um exame da base de dados
 exports.deletar = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verificar se exame existe antes de deletar
     const exameExiste = await pool.query('SELECT id FROM exames WHERE id = $1', [id]);
     if (exameExiste.rowCount === 0) {
       return res.status(404).json({

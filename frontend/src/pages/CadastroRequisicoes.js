@@ -1,11 +1,17 @@
+// Importar componentes React Native
 import { StyleSheet, View, SafeAreaView, ScrollView, Text } from "react-native";
 import { useState, useEffect } from "react";
+// Importar componentes customizados
 import Header from "../components/Header/index.js";
 import PageHeader from "../components/Common/PageHeader/index.js";
 import SelectField from "../components/Common/SelectField/index.js";
 import ActionButtons from "../components/Common/ActionButtons/index.js";
+// Importar funções da API
 import * as apiService from "../services/apiService.js";
 
+/**
+ * Página CadastroRequisicoes - Criar nova requisição ou editar existente
+ */
 export default function CadastroRequisicoes({ navigation, route }) {
   const [formData, setFormData] = useState({
     pacienteId: "",
@@ -21,6 +27,7 @@ export default function CadastroRequisicoes({ navigation, route }) {
     carregarPacientes();
     carregarExames();
 
+    // Se está em modo edição, carrega dados da requisição existente
     if (route?.params?.isEdit && route?.params?.requisicaoData) {
       setIsEdit(true);
       setRequisicaoId(route.params.requisicaoData.id);
@@ -31,9 +38,11 @@ export default function CadastroRequisicoes({ navigation, route }) {
     }
   }, [route?.params]);
 
+  // Função para buscar todos os pacientes da API
   const carregarPacientes = async () => {
     try {
       const result = await apiService.getPacientes();
+      // Se obteve dados com sucesso, atualiza lista de pacientes
       if (!result.error) {
         setPacientes(result.data);
       }
@@ -42,9 +51,11 @@ export default function CadastroRequisicoes({ navigation, route }) {
     }
   };
 
+  // Função para buscar todos os exames da API
   const carregarExames = async () => {
     try {
       const result = await apiService.getExames();
+      // Se obteve dados com sucesso, atualiza lista de exames
       if (!result.error) {
         setExames(result.data);
       }
@@ -53,12 +64,15 @@ export default function CadastroRequisicoes({ navigation, route }) {
     }
   };
 
+  // Função para atualizar dados do formulário
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  // Função para adicionar ou remover exame da requisição
   const handleToggleExame = (exameId) => {
     setFormData(prev => {
+      // Se exame já está selecionado, remove; senão, adiciona
       const exameIds = prev.exameIds.includes(exameId)
         ? prev.exameIds.filter(id => id !== exameId)
         : [...prev.exameIds, exameId];
@@ -66,7 +80,9 @@ export default function CadastroRequisicoes({ navigation, route }) {
     });
   };
 
+  // Função para salvar ou atualizar requisição
   const handleSalvar = async () => {
+    // Valida se paciente e pelo menos um exame foram selecionados
     if (!formData.pacienteId || formData.exameIds.length === 0) {
       alert('Selecione paciente e pelo menos um exame');
       return;
@@ -78,6 +94,7 @@ export default function CadastroRequisicoes({ navigation, route }) {
         pexameIds: formData.exameIds.map(id => parseInt(id))
       };
 
+      // Se está em modo edição, atualiza; senão, cria nova requisição
       let result;
       if (isEdit) {
         result = await apiService.updateRequisicao(requisicaoId, requisicaoData);
@@ -85,11 +102,13 @@ export default function CadastroRequisicoes({ navigation, route }) {
         result = await apiService.createRequisicao(requisicaoData);
       }
 
+      // Se sucesso, limpa formulário e volta à lista
       if (!result.error) {
         alert(result.message);
         setFormData({ pacienteId: "", exameIds: [] });
         navigation.goBack();
       } else {
+        // Se erro, exibe mensagem
         alert(`Erro: ${result.message}`);
       }
     } catch (error) {
@@ -98,15 +117,18 @@ export default function CadastroRequisicoes({ navigation, route }) {
     }
   };
 
+  // Função para cancelar e voltar à lista
   const handleCancelar = () => {
     navigation.goBack();
   };
 
+  // Criar array de opções para o select de pacientes
   const pacientesOptions = pacientes.map(p => ({
     label: p.nome,
     value: p.id.toString()
   }));
 
+  // Criar array de opções para o select de exames
   const examesOptions = exames.map(e => ({
     label: e.nome,
     value: e.id.toString()
@@ -136,14 +158,17 @@ export default function CadastroRequisicoes({ navigation, route }) {
           <Text style={styles.sectionTitle}>🔬 Exames</Text>
           <Text style={styles.label}>Selecione os exames *</Text>
           <View style={styles.examesContainer}>
+            {/* Se não há exames disponíveis, exibe mensagem */}
             {examesOptions.length === 0 ? (
               <Text style={styles.noExamesText}>Nenhum exame disponível</Text>
             ) : (
+              // Lista todos os exames para seleção
               examesOptions.map(exame => (
                 <View key={exame.value} style={styles.exameItem}>
                   <Text 
                     style={[
                       styles.exameText,
+                      // Se exame está selecionado, muda a cor
                       formData.exameIds.includes(exame.value) && styles.exameTextSelected
                     ]}
                     onPress={() => handleToggleExame(exame.value)}
