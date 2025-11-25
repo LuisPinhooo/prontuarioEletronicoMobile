@@ -19,7 +19,7 @@ DB_CONFIG = {
     'host': '127.0.0.1',
     'port': 50000,
     'user': 'postgres',
-    'password': '9090',
+    'password': '123456',
     'database': 'prontuario_eletronico'
 }
 
