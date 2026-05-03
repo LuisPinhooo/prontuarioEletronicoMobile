@@ -360,7 +360,7 @@ def export_csv(results: Iterable[ProductInfo], path: str) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Price Monitor MVP para e-commerces.")
+    parser = argparse.ArgumentParser(description="Price Monitor MVP para e-commerce.")
     parser.add_argument(
         "urls",
         nargs="*",
