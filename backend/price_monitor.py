@@ -360,6 +360,16 @@ def export_csv(results: Iterable[ProductInfo], path: str) -> None:
             )
 
 
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Timeout deve ser um número inteiro.") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("Timeout deve ser maior que zero.")
+    return parsed
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Price Monitor MVP para e-commerce.")
     parser.add_argument(
@@ -368,7 +378,7 @@ def parse_args() -> argparse.Namespace:
         help="URLs de produtos (Amazon, Shopee, Magalu, Mercado Livre).",
     )
     parser.add_argument("--csv", dest="csv_path", help="Salva resultados em CSV.")
-    parser.add_argument("--timeout", type=int, default=20, help="Timeout das requisições (segundos).")
+    parser.add_argument("--timeout", type=positive_int, default=20, help="Timeout das requisições (segundos).")
     return parser.parse_args()
 
 

@@ -509,7 +509,7 @@ pip install rich
 
 ### Execução
 ```bash
-python backend/price_monitor.py <url1> <url2> --csv resultados.csv
+python backend/price_monitor.py https://www.magazineluiza.com.br/produto-exemplo --csv resultados.csv
 ```
 
 **Observação:** Amazon e Shopee podem bloquear requisições simples. Se ocorrer, use Playwright ou Selenium.
