@@ -331,10 +331,10 @@ def render_results(results: Iterable[ProductInfo]) -> None:
             widths[index] = max(widths[index], len(str(cell)))
     separator = f"+{'+'.join('-' * (width + 2) for width in widths)}+"
     print(separator)
-    print("|".join(f" {header:<{widths[i]}} " for i, header in enumerate(headers)))
+    print("|" + "|".join(f" {header:<{widths[i]}} " for i, header in enumerate(headers)) + "|")
     print(separator)
     for row in rows:
-        print("|".join(f" {str(cell):<{widths[i]}} " for i, cell in enumerate(row)))
+        print("|" + "|".join(f" {str(cell):<{widths[i]}} " for i, cell in enumerate(row)) + "|")
     print(separator)
 
 
