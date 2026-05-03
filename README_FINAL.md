@@ -496,6 +496,26 @@ Quatro arquivos de referência foram criados:
 
 ---
 
+## 🛒 PRICE MONITOR (MVP PYTHON)
+
+Script básico para monitorar preço e disponibilidade em grandes e-commerces.
+
+### Instalação
+```bash
+pip install -r backend/requirements_price_monitor.txt
+# Opcional (tabela bonita no console):
+pip install rich
+```
+
+### Execução
+```bash
+python backend/price_monitor.py <url1> <url2> --csv resultados.csv
+```
+
+**Observação:** Amazon e Shopee podem bloquear requisições simples. Se ocorrer, use Playwright ou Selenium.
+
+---
+
 ## 🎯 PRÓXIMOS PASSOS (OPCIONAL)
 
 ### Alta Prioridade

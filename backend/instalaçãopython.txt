@@ -34,3 +34,18 @@ Após executar, você terá:
     📝 README.txt (instruções detalhadas)
 
 ═════════════════════════════════════════════════════════════════════════════
+
+📋 PASSO 4: PRICE MONITOR (MVP)
+═════════════════════════════════════════════════════════════════════════════
+
+Instalar dependências:
+
+    pip install -r requirements_price_monitor.txt
+    # Opcional (tabela bonita no console):
+    pip install rich
+
+Executar:
+
+    python price_monitor.py <url1> <url2> --csv resultados.csv
+
+Observação: Amazon e Shopee podem bloquear requisições simples. Se ocorrer, use Playwright ou Selenium.
