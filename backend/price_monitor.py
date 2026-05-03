@@ -2,6 +2,7 @@ import argparse
 import csv
 import random
 import re
+import sys
 from dataclasses import dataclass
 from typing import Iterable, Optional
 from urllib.parse import urlparse
@@ -374,10 +375,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     if not args.urls:
-        print("Informe pelo menos uma URL de produto.")
-        print("Exemplo:")
-        print("  python price_monitor.py https://www.amazon.com.br/produto-exemplo")
-        print("  python price_monitor.py https://www.magazineluiza.com.br/produto-exemplo")
+        print("Informe pelo menos uma URL de produto.", file=sys.stderr)
+        print("Exemplo:", file=sys.stderr)
+        print("  python price_monitor.py https://www.amazon.com.br/produto-exemplo", file=sys.stderr)
+        print("  python price_monitor.py https://www.magazineluiza.com.br/produto-exemplo", file=sys.stderr)
         return
 
     results = []
