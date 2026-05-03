@@ -255,10 +255,10 @@ class MercadoLivreScraper(BaseScraper):
     def parse(self, soup: BeautifulSoup) -> tuple[Optional[str], Optional[str], Optional[str]]:
         name = first_text(soup, ["h1.ui-pdp-title", "h1"])
         fraction = first_text(soup, ["span.andes-money-amount__fraction"])
-        cents = first_text(soup, ["span.andes-money-amount__cents"])
+        centavos = first_text(soup, ["span.andes-money-amount__cents"])
         price = None
         if fraction:
-            price = f"{fraction},{cents}" if cents else fraction
+            price = f"{fraction},{centavos}" if centavos else fraction
         if not price:
             price = first_attr(soup, ["meta[itemprop='price']", "meta[property='product:price:amount']"], "content")
         availability = first_text(
@@ -329,7 +329,7 @@ def render_results(results: Iterable[ProductInfo]) -> None:
     for row in rows:
         for index, cell in enumerate(row):
             widths[index] = max(widths[index], len(str(cell)))
-    separator = "+".join("-" * (width + 2) for width in widths)
+    separator = f"+{'+'.join('-' * (width + 2) for width in widths)}+"
     print(separator)
     print("|".join(f" {header:<{widths[i]}} " for i, header in enumerate(headers)))
     print(separator)
