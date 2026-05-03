@@ -101,7 +101,7 @@ def first_attr(soup: BeautifulSoup, selectors: Iterable[str], attr: str) -> Opti
     return None
 
 
-def response_blocked(status_code: int, body: str) -> bool:
+def is_response_blocked(status_code: int, body: str) -> bool:
     if status_code in {403, 429, 503}:
         return True
     lowered = body.lower()
@@ -131,7 +131,7 @@ class BaseScraper:
             )
 
         soup = BeautifulSoup(response.text, "html.parser")
-        if response_blocked(response.status_code, response.text):
+        if is_response_blocked(response.status_code, response.text):
             return ProductInfo(
                 site=self.site_name,
                 url=url,
@@ -233,10 +233,10 @@ class MagaluScraper(BaseScraper):
                 "span.price-template__text",
             ],
         )
-        availability = first_attr(
+        availability = first_attr(soup, ["link[itemprop='availability']"], "href") or first_attr(
             soup,
-            ["link[itemprop='availability']", "meta[itemprop='availability']"],
-            "href",
+            ["meta[itemprop='availability']"],
+            "content",
         )
         return name, price, availability
 
@@ -259,7 +259,11 @@ class MercadoLivreScraper(BaseScraper):
             ["p.ui-pdp-stock-information__title", "span.ui-pdp-buybox__quantity__available"],
         )
         if not availability:
-            availability = first_attr(soup, ["link[itemprop='availability']", "meta[itemprop='availability']"], "href")
+            availability = first_attr(soup, ["link[itemprop='availability']"], "href") or first_attr(
+                soup,
+                ["meta[itemprop='availability']"],
+                "content",
+            )
         return name, price, availability
 
 
