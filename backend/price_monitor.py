@@ -30,6 +30,8 @@ BASE_HEADERS = {
     "Connection": "keep-alive",
 }
 
+BLOCKED_TOKENS = ("captcha", "robô", "robot check", "verificação")
+
 
 @dataclass
 class ProductInfo:
@@ -54,8 +56,13 @@ def normalize_price(raw_value: Optional[str]) -> Optional[float]:
     cleaned = re.sub(r"[^\d,\.]", "", raw_value).strip()
     if not cleaned:
         return None
-    if "," in cleaned:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
+    if "," in cleaned and "." in cleaned:
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
+    else:
+        cleaned = cleaned.replace(",", ".")
     try:
         return float(cleaned)
     except ValueError:
@@ -105,7 +112,7 @@ def is_response_blocked(status_code: int, body: str) -> bool:
     if status_code in {403, 429, 503}:
         return True
     lowered = body.lower()
-    return any(token in lowered for token in ("captcha", "robô", "robot check", "verificação"))
+    return any(token in lowered for token in BLOCKED_TOKENS)
 
 
 class BaseScraper:
@@ -322,13 +329,13 @@ def render_results(results: Iterable[ProductInfo]) -> None:
     for row in rows:
         for index, cell in enumerate(row):
             widths[index] = max(widths[index], len(str(cell)))
-    line = "+".join("-" * (width + 2) for width in widths)
-    print(line)
+    separator = "+".join("-" * (width + 2) for width in widths)
+    print(separator)
     print("|".join(f" {header:<{widths[i]}} " for i, header in enumerate(headers)))
-    print(line)
+    print(separator)
     for row in rows:
         print("|".join(f" {str(cell):<{widths[i]}} " for i, cell in enumerate(row)))
-    print(line)
+    print(separator)
 
 
 def export_csv(results: Iterable[ProductInfo], path: str) -> None:
